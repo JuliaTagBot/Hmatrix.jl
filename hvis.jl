@@ -182,7 +182,7 @@ function test_hmat_trisolve()
     A = fraclap(n, 0.8)
     B = fraclap(n, 0.2)
     A = Array{Float64}(LowerTriangular(A))
-    
+
     # @show size(B)
     hA = construct_hmat(A, 16, 1e-8, 8)
     hB = construct_hmat(B, 16, 1e-8, 8)
@@ -208,7 +208,7 @@ function test_lu()
         hA = construct_hmat(A, 16, eps, 8)
         lu!(hA)
         to_fmat!(hA)
-        
+
         U = UpperTriangular(hA.C)
         L = LowerTriangular(hA.C)-diagm(0=>diag(hA.C))+UniformScaling(1.0)
         Q = copy(A)
@@ -258,12 +258,12 @@ function test_solve()
     g2 = L\w
 
     println(norm(g1-g2)/norm(g2))
-    
+
     s1 =  hmat_solve(hA, g2, false)
     s2 = U\g2
     println(norm(s1-s2)/norm(s2))
-        
-        
+
+
 end
 
 function test_solve2()
@@ -282,15 +282,44 @@ function test_solve2()
     end
 end
 
-function profile_lu(n=5)
-    eps = 1e-6
+function profile_lu(n=10, minN=64, eps=1e-6, maxR=16, maxN = 256)
+    println("n=$(2^n), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
     s = 0.5
     A = fraclap(n, 0.8)
     y = rand(size(A,1))
-     hA = construct_hmat(A, 16, eps, 8, 128);
+    hA = construct_hmat(A, minN, eps, maxR, maxN);
     @time lu!(hA);
-     w = hA\y;
-     g = A\y
+     hA\y;
+    @time L,U,P = lu(A)
+
+    w = hA\y;
+    @time begin
+        for i = 1:10
+            w = hA\y;
+        end
+    end
+    g = U\(L\y[P])
+    @time begin
+        for i = 1:10
+            g = U\(L\y[P])
+        end
+    end
     println(norm(g-w)/norm(g))
 end
 
+
+function test_matvec()
+    eps = 1e-2
+    n = 10
+    s = 0.5
+    A = fraclap(n, 0.2)
+    hA = construct_hmat(A, 16, eps, 8)
+    y = rand(2^n)
+
+    z = copy(y)
+    w = zeros(size(z))
+    hmat_matvec!(w, hA, z, 1.0)
+    res = A*z
+    # println(w)
+    println(norm(res-w)/norm(res))
+end

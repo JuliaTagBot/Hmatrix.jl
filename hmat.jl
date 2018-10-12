@@ -106,7 +106,7 @@ end
 
 
 function rkmat_add!(a, b, scalar, method=1)
-    
+
     if method==1
         a.A, a.B = svdtrunc(a.A, a.B, scalar*b.A, b.B)
     else
@@ -172,7 +172,7 @@ function Base.:*(a::Hmat, b::Hmat)
         H.C = a*c
     elseif a.is_rkmatrix && b.is_fullmatrix
         H.is_rkmatrix = true
-        H.A = a.A 
+        H.A = a.A
         H.B = (a.B' * b.C)'
     elseif a.is_rkmatrix && b.is_rkmatrix
         H.is_rkmatrix = true
@@ -227,23 +227,23 @@ function Base.:*(a::Hmat, v::AbstractArray{Float64})
     end
 end
 
-function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::Array{Float64})
+function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::AbstractArray{Float64}, s::Float64)
     if a.is_fullmatrix
-        r[:] += a.C * v
+        BLAS.gemm!('N','N',s,a.C,v,1.0,r)
     elseif a.is_rkmatrix
-        r[:] += a.A * (a.B'*v)
+        BLAS.gemm!('N','N',s,a.A, a.B'*v,1.0,r)
     else
         m, n = a.children[1,1].m, a.children[1,1].n
         @views begin
-            hmat_matvec!(r[1:m], a.children[1,1], v[1:n])
-            hmat_matvec!(r[1:m], a.children[1,2], v[1:n])
-            hmat_matvec!(r[m+1:end], a.children[2,1], v[n+1:end])
-            hmat_matvec!(r[m+1:end], a.children[2,2], v[n+1:end])
+            hmat_matvec!(r[1:m], a.children[1,1], v[1:n], s)
+            hmat_matvec!(r[1:m], a.children[1,2], v[n+1:end], s)
+            hmat_matvec!(r[m+1:end], a.children[2,1], v[1:n], s)
+            hmat_matvec!(r[m+1:end], a.children[2,2], v[n+1:end], s)
         end
     end
 end
 
-# copy the hmatrix A to H in place. 
+# copy the hmatrix A to H in place.
 function hmat_copy!(H, A)
     H.m = A.m
     H.n = A.n
@@ -254,7 +254,7 @@ function hmat_copy!(H, A)
     elseif A.is_rkmatrix
         H.A = copy(A.A)
         H.B = copy(A.B)
-        H.is_rkmatrix = true    
+        H.is_rkmatrix = true
     else
         H.is_hmat = true
         H.children = Array{Hmat}([Hmat() Hmat()
@@ -289,6 +289,29 @@ function to_fmat!(A::Hmat)
     A.is_fullmatrix = true
     A.is_rkmatrix = false
     A.is_hmat = false
+end
+
+function to_fmat2!(A::Hmat)
+    if length(A.C)>0
+        return
+    end
+    if A.is_fullmatrix 
+        return
+    elseif A.is_rkmatrix
+        A.C = A.A*A.B'
+    elseif A.is_hmat
+        for i = 1:2
+            for j = 1:2
+                to_fmat2!(A.children[i,j])
+            end
+        end
+        A.C = [A.children[1,1].C A.children[1,2].C
+                A.children[2,1].C  A.children[2,2].C]
+        if length(A.children[1,1].P)>0
+            A.P = [A.children[1,1].P;
+                    A.children[2,2].P .+ A.children[1,1].m]
+        end
+    end
 end
 
 
@@ -330,12 +353,18 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
         error("A should not be a low-rank matrix")
     end
 
+    if unitdiag
+        cc = 'U'
+    else
+        cc = 'N'
+    end
+
     if islower
         if a.is_fullmatrix && b.is_fullmatrix
             if permutation && length(a.P)>0
                 b.C = b.C[a.P,:]
             end
-            b.C = getl(a.C, unitdiag)\b.C
+            LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
         elseif a.is_fullmatrix && b.is_rkmatrix
             if permutation && length(a.P)>0
                 b.A = b.A[a.P,:]
@@ -343,11 +372,17 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
             if size(b.A,1)==0
                 return
             end
-            b.A = getl(a.C, unitdiag)\b.A
+            LAPACK.trtrs!('L', 'N', cc, a.C, b.A)
         elseif a.is_fullmatrix && b.is_hmat
             b.is_fullmatrix = true
             to_fmat!(b)
             hmat_trisolve!(a, b, islower, unitdiag, permutation)
+            if permutation && length(a.P)>0
+                b.C = b.C[a.P,:]
+            end
+            LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
+
+
         elseif a.is_hmat && b.is_hmat
             hmat_trisolve!(a.children[1,1], b.children[1,1], islower, unitdiag, permutation)
             hmat_trisolve!(a.children[1,1], b.children[1,2], islower, unitdiag, permutation)
@@ -360,11 +395,16 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
             hmat_copy!(H, a)
             to_fmat!(H)
             hmat_trisolve!(H, b, islower, unitdiag, permutation)
+
         elseif a.is_hmat && b.is_rkmatrix
             H = Hmat()
             hmat_copy!(H, a)
             to_fmat!(H)
-            hmat_trisolve!(H, b, islower, unitdiag, permutation)
+
+            if permutation && length(a.P)>0
+                b.A = b.A[a.P,:]
+            end
+            LAPACK.trtrs!('L', 'N', cc, H.C, b.A)
         end
     else
         transpose!(a)
@@ -375,23 +415,19 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
     end
 end
 
-function LinearAlgebra.:lu!(H::Hmat)    
+function LinearAlgebra.:lu!(H::Hmat)
     if H.is_rkmatrix
         error("H should not be a low-rank matrix")
     end
 
     if H.is_fullmatrix
-        print("LU ")
-        @time L, U, H.P = lu(H.C)
-        H.C = L - UniformScaling(1.0) + U
+        F = lu!(H.C)
+        H.P = F.p
     else
         lu!(H.children[1,1])
-        print("L ")
-        @time hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, true)
-        print("U ")
-        @time hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)
-        print("+ ")
-        @time hmat_add!(H.children[2,2], H.children[2,1]*H.children[1,2], -1.0)
+        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, true)
+        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)
+        hmat_add!(H.children[2,2], H.children[2,1]*H.children[1,2], -1.0)
         lu!(H.children[2,2])
     end
 end
@@ -404,27 +440,22 @@ function hmat_solve!(a::Hmat, y::AbstractArray{Float64}, lower=true)
     if lower
         if a.is_fullmatrix
             permute!(y, a.P)
-            ldiv!(getl(a.C, true), y)
-            # y[:] = getl(a.C, true)\y
+            LAPACK.trtrs!('L', 'N', 'U', a.C, y)
         elseif a.is_hmat
-            k = a.children[1,1].m
-            # println("$k, $(length(y))")
             @views begin
-                hmat_solve!(a.children[1,1], y[1:k], true)
-                y[k+1:end] -= a.children[2,1]*y[1:k]
-                hmat_solve!(a.children[2,2], y[k+1:end], true)
+                hmat_solve!(a.children[1,1], y[1:a.children[1,1].m], true)
+                hmat_matvec!(y[a.children[1,1].m+1:end], a.children[2,1], y[1:a.children[1,1].m], -1.0)
+                hmat_solve!(a.children[2,2], y[a.children[1,1].m+1:end], true)
             end
         end
     else
         if a.is_fullmatrix
-            ldiv!(getu(a.C,false), y)
-            # y = getu(a.C, false)\y
+            LAPACK.trtrs!('U', 'N', 'N', a.C, y)
         elseif a.is_hmat
-            k = a.children[1,1].m
             @views begin
-                hmat_solve!(a.children[2,2], y[k+1:end], false)
-                y[1:k] -= a.children[1,2]*y[k+1:end]
-                hmat_solve!(a.children[1,1], y[1:k], false)
+                hmat_solve!(a.children[2,2], y[a.children[1,1].m+1:end], false)
+                hmat_matvec!(y[1:a.children[1,1].m], a.children[1,2], y[a.children[1,1].m+1:end], -1.0)
+                hmat_solve!(a.children[1,1], y[1:a.children[1,1].m], false)
             end
         end
     end
@@ -481,6 +512,3 @@ function construct_hmat(A, Nleaf, Erank, Rrank, MaxBlock=64)
     helper(H, Ac)
     return H
 end
-
-
-

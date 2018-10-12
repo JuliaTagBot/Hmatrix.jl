@@ -289,7 +289,6 @@ function profile_lu(n=10, minN=64, eps=1e-6, maxR=16, maxN = 256)
     y = rand(size(A,1))
     hA = construct_hmat(A, minN, eps, maxR, maxN);
     @time lu!(hA);
-     hA\y;
     @time L,U,P = lu(A)
 
     w = hA\y;
@@ -305,6 +304,8 @@ function profile_lu(n=10, minN=64, eps=1e-6, maxR=16, maxN = 256)
         end
     end
     println(norm(g-w)/norm(g))
+    # Juno.profiletree()
+    # Juno.profiler()
 end
 
 

@@ -227,6 +227,7 @@ function Base.:*(a::Hmat, v::AbstractArray{Float64})
     end
 end
 
+# r = r + s*a*v
 function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::AbstractArray{Float64}, s::Float64)
     if a.is_fullmatrix
         BLAS.gemm!('N','N',s,a.C,v,1.0,r)
@@ -295,7 +296,7 @@ function to_fmat2!(A::Hmat)
     if length(A.C)>0
         return
     end
-    if A.is_fullmatrix 
+    if A.is_fullmatrix
         return
     elseif A.is_rkmatrix
         A.C = A.A*A.B'
@@ -347,6 +348,7 @@ function transpose!(a::Hmat)
     end
 end
 
+
 # Solve AX = B and store the result into B
 function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
     if a.is_rkmatrix
@@ -373,10 +375,10 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 return
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.A)
+
         elseif a.is_fullmatrix && b.is_hmat
             b.is_fullmatrix = true
             to_fmat!(b)
-            hmat_trisolve!(a, b, islower, unitdiag, permutation)
             if permutation && length(a.P)>0
                 b.C = b.C[a.P,:]
             end
@@ -386,6 +388,8 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
         elseif a.is_hmat && b.is_hmat
             hmat_trisolve!(a.children[1,1], b.children[1,1], islower, unitdiag, permutation)
             hmat_trisolve!(a.children[1,1], b.children[1,2], islower, unitdiag, permutation)
+            # hmat_matvec!(b.children[2,1], a.children[2,1], b.children[1,1], -1.0)
+            # hmat_matvec!(b.children[2,2], a.children[2,1], b.children[1,2], -1.0)
             hmat_add!(b.children[2,1], a.children[2,1]*b.children[1,1], -1.0)
             hmat_add!(b.children[2,2], a.children[2,1]*b.children[1,2], -1.0)
             hmat_trisolve!(a.children[2,2], b.children[2,1], islower, unitdiag, permutation)

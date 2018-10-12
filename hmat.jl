@@ -17,6 +17,7 @@ if !@isdefined Hmat
     end
 end
 
+# utilities
 function consistency(H::Hmat)
     @assert H.m>0
     @assert H.n>0
@@ -46,8 +47,32 @@ function consistency(H::Hmat)
     end
 end
 
+function fmat(A::Array{Float64})
+    H = Hmat()
+    H.is_fullmatrix = true
+    H.m, H.n = size(A)
+    H.C = copy(A)
+    return H
+end
+
+function rkmat(A, B)
+    H = Hmat()
+    H.is_rkmatrix = true
+    m = size(A,1)
+    n = size(B,1)
+    H.A = copy(A)
+    H.B = copy(B)
+    return H
+end
+
 function rank_truncate(S, eps=1e-6)
+    if length(S)==0
+        return 0
+    end
     k = findlast(S/S[1] .> eps)
+    if k==nothing
+        k = 0
+    end
     return k
 end
 
@@ -156,7 +181,7 @@ function Base.:*(a::Hmat, b::Hmat)
         c = Hmat()
         hmat_copy!(c, a)
         to_fmat!(c)
-        H.C = c*b
+        H.C = c.C*b.C
     elseif a.is_hmat && b.is_rkmatrix
         H.is_rkmatrix = true
         c = Hmat()
@@ -177,7 +202,7 @@ function Base.:*(a::Hmat, b::Hmat)
     return H
 end
 
-function Base.:*(a::Hmat, v::Array{Float64})
+function Base.:*(a::Hmat, v::AbstractArray{Float64})
     if a.is_fullmatrix
         return a.C*v
     elseif a.is_rkmatrix
@@ -185,8 +210,10 @@ function Base.:*(a::Hmat, v::Array{Float64})
     else
         u = zeros(length(v))
         m, n = a.children[1,1].m, a.children[1,1].n
-        u[1:m] = a.children[1,1]*view(v, 1:n) + a.children[1,2]*view(v, n+1:length(v))
-        u[m+1:end] = a.children[2,1]*view(v, 1:n) + a.children[2,2]*view(v, n+1:length(v))
+        @views begin
+            u[1:m] = a.children[1,1]*v[1:n] + a.children[1,2]*v[n+1:end]
+            u[m+1:end] = a.children[2,1]*v[1:n] + a.children[2,2]*v[n+1:end]
+        end
         return u
     end
 end
@@ -245,6 +272,10 @@ function to_fmat!(A::Hmat)
         end
         A.C = [A.children[1,1].C A.children[1,2].C
                 A.children[2,1].C  A.children[2,2].C]
+        if length(A.children[1,1].P)>0
+            A.P = [A.children[1,1].P;
+                    A.children[2,2].P .+ A.children[1,1].m]
+        end
     end
     A.is_fullmatrix = true
     A.is_rkmatrix = false
@@ -292,13 +323,16 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
 
     if islower
         if a.is_fullmatrix && b.is_fullmatrix
-            if permutation && b.is_rkmatrix
+            if permutation && length(a.P)>0
                 b.C = b.C[a.P,:]
             end
             b.C = getl(a.C, unitdiag)\b.C
         elseif a.is_fullmatrix && b.is_rkmatrix
             if permutation && length(a.P)>0
                 b.A = b.A[a.P,:]
+            end
+            if size(b.A,1)==0
+                return
             end
             b.A = getl(a.C, unitdiag)\b.A
         elseif a.is_fullmatrix && b.is_hmat
@@ -376,7 +410,7 @@ function hmat_solve(a::Hmat, y::Array{Float64}, lower=true)
 end
 
 # a is factorized hmatrix
-function Base.:\(a::Hmat, v::Array{Float64})
+function Base.:\(a::Hmat, y::Array{Float64})
     y = hmat_solve(a, y, true)
     y = hmat_solve(a, y, false)
     return y
@@ -413,7 +447,8 @@ function construct_hmat(A, Nleaf, Erank, Rrank)
     end
 
     H = Hmat()
-    helper(H, A)
+    Ac = copy(A)
+    helper(H, Ac)
     return H
 end
 

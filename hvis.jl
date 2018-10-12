@@ -124,4 +124,130 @@ function test_hmat_lu()
 end
 
 
+function test_hmat_trisolve()
+    A = rand(10,10)
+    A = Array{Float64}(LowerTriangular(A))
+    B = rand(10,10)
+    hA = fmat(A)
+    hB = fmat(B)
+    hmat_trisolve!(hA, hB, true, false, false)
+    println(norm(hB.C-A\B, Inf))
+
+    A = rand(10,10)
+    A = Array{Float64}(LowerTriangular(A))
+    B = rand(10,10)
+    hA = fmat(A)
+    hB = fmat(B)
+    hA.P = [10,8,9,7,6,5,4,3,2,1]
+    hmat_trisolve!(hA, hB, true, false, true)
+    println(norm(hB.C-A\B[hA.P,:], Inf))
+
+    A = rand(10,10)
+    A = Array{Float64}(LowerTriangular(A))+UniformScaling(1.0)-diagm(0=>diag(A))
+    B = rand(10,1)
+    hA = fmat(A)
+    hB = rkmat(B, B)
+    C = B*B'
+    hA.P = [10,8,9,7,6,5,4,3,2,1]
+    hmat_trisolve!(hA, hB, true, true, true)
+    to_fmat!(hB)
+    println(norm(hB.C-A\C[hA.P,:], Inf))
+
+    A = rand(10,10)
+    A = Array{Float64}(UpperTriangular(A))
+    B = rand(10,10)
+    hA = fmat(A)
+    hB = fmat(B)
+    hmat_trisolve!(hA, hB, false, false, false)
+    println(norm(hB.C-B/A, Inf))
+
+
+    n = 10
+    s = 0.5
+    A = fraclap(n, 0.8)
+    B = fraclap(n, 0.2)
+    A = Array{Float64}(LowerTriangular(A))
+    
+    # @show size(B)
+    hA = construct_hmat(A, 16, 1e-8, 8)
+    hB = construct_hmat(B, 16, 1e-8, 8)
+    # plot_hmat(hA)
+    # @show size(B)
+    hmat_trisolve!(hA, hB, true, false, false)
+    to_fmat!(hB)
+    # @show size(B)
+    println(norm(hB.C-A\B, Inf))
+
+end
+
+function test_lu()
+    # A = rand(10,10)
+    # hA = fmat(A)
+    # hmat_lu!(hA)
+    # to_fmat!(hA)
+
+    for eps = [1e-3, 1e-6, 1e-8, 1e-10]
+        n = 10
+        s = 0.5
+        A = fraclap(n, 0.8)
+        hA = construct_hmat(A, 16, eps, 8)
+        hmat_lu!(hA)
+        to_fmat!(hA)
+        
+        U = UpperTriangular(hA.C)
+        L = LowerTriangular(hA.C)-diagm(0=>diag(hA.C))+UniformScaling(1.0)
+        Q = copy(A)
+        Q = Q[hA.P,:]
+        println(norm(L*U-Q, Inf))
+    end
+end
+
+function test_matvec()
+    eps = 1e-2
+    n = 10
+    s = 0.5
+    A = fraclap(n, 0.2)
+    hA = construct_hmat(A, 16, eps, 8)
+    y = rand(2^n)
+    y1 = hA*y
+    y2 = A*y
+    println(norm(y1-y2)/norm(y2))
+end
+
+function test_solve()
+    # A = rand(100,100)
+    # hA = fmat(A)
+    # hmat_lu!(hA)
+    # to_fmat!(hA)
+
+    eps = 1e-6
+    n = 5
+    s = 0.5
+    A = fraclap(n, 0.8)
+    hA = construct_hmat(A, 16, eps, 8)
+    hmat_lu!(hA)
+
+    hB = Hmat()
+    hmat_copy!(hB, hA)
+    to_fmat!(hB)
+    U = UpperTriangular(hB.C)
+    L = LowerTriangular(hB.C)-diagm(0=>diag(hB.C))+UniformScaling(1.0)
+    Q = copy(A)
+    Q = Q[hB.P,:]
+    println(norm(L*U-Q, Inf))
+
+    y = rand(hA.m)
+    g1 = hmat_solve(hA, y, true)
+
+    w = y[hB.P]
+    g2 = L\w
+
+    println(norm(g1-g2, Inf))
+    
+    s1 =  hmat_solve(hA, g2, false)
+    s2 = U\g2
+    println(norm(s1-s2, Inf))
+        
+        
+end
 

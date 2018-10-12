@@ -1,6 +1,7 @@
 using Parameters
 using LinearAlgebra
 using PyPlot
+using Printf
 
 if !@isdefined Hmat
     @with_kw mutable struct Hmat
@@ -338,7 +339,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
         elseif a.is_fullmatrix && b.is_hmat
             b.is_fullmatrix = true
             to_fmat!(b)
-            hmat_solve!(a, b, islower, unitdiag, permutation)
+            hmat_trisolve!(a, b, islower, unitdiag, permutation)
         elseif a.is_hmat && b.is_hmat
             hmat_trisolve!(a.children[1,1], b.children[1,1], islower, unitdiag, permutation)
             hmat_trisolve!(a.children[1,1], b.children[1,2], islower, unitdiag, permutation)
@@ -384,36 +385,48 @@ function hmat_lu!(H)
 end
 
 # a is factorized hmatrix
-function hmat_solve(a::Hmat, y::Array{Float64}, lower=true)
+function hmat_solve!(a::Hmat, y::AbstractArray{Float64}, lower=true)
     if a.is_rkmatrix
         error("a cannot be a low-rank matrix")
     end
     if lower
         if a.is_fullmatrix
-            y = y[a.P]
-            y = getl(a.C, true)\y
+            permute!(y, a.P)
+            ldiv!(getl(a.C, true), y)
+            # y[:] = getl(a.C, true)\y
         elseif a.is_hmat
             k = a.children[1,1].m
-            y[1:k] = hmat_solve(a.children[1,1], y[1:k], true)
-            y[k+1:end] = hmat_solve(a.children[2,2], y[k+1:end]-a.children[2,1]*y[1:k], true)
+            @views begin
+                hmat_solve!(a.children[1,1], y[1:k], true)
+                y[k+1:end] -= a.children[2,1]*y[1:k]
+                hmat_solve!(a.children[2,2], y[k+1:end], true)
+            end
         end
     else
         if a.is_fullmatrix
-            y = getu(a.C, false)\y
+            ldiv!(getu(a.C,false), y)
+            # y = getu(a.C, false)\y
         elseif a.is_hmat
             k = a.children[1,1].m
-            y[k+1:end] = hmat_solve(a.children[2,2], y[k+1:end], false)
-            y[1:k] = hmat_solve(a.children[1,1], y[1:k]-a.children[1,2]*y[k+1:end], false)
+            @views begin
+                hmat_solve!(a.children[2,2], y[k+1:end], false)
+                y[1:k] -= a.children[1,2]*y[k+1:end]
+                hmat_solve!(a.children[1,1], y[1:k], false)
+            end
         end
     end
-    return y
 end
 
 # a is factorized hmatrix
-function Base.:\(a::Hmat, y::Array{Float64})
-    y = hmat_solve(a, y, true)
-    y = hmat_solve(a, y, false)
-    return y
+function LinearAlgebra.:ldiv!(a::Hmat, y::AbstractArray{Float64})
+    hmat_solve!(a, y, true)
+    hmat_solve!(a, y, false)
+end
+
+function Base.:\(a::Hmat, y::AbstractArray{Float64})
+    w = copy(y)
+    ldiv!(a, w)
+    return w
 end
 
 

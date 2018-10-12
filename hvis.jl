@@ -1,6 +1,17 @@
 include("hmat.jl")
 include("hexample.jl")
 
+function showmat(A)
+    println("===================")
+    for i = 1:size(A,1)
+        for j = 1:size(A,2)
+            @printf("%0.3f ", A[i,j])
+        end
+        println("")
+    end
+    println("===================")
+end
+
 function color_level(H)
     function helper!(H, level)
         if H.is_fullmatrix
@@ -249,5 +260,52 @@ function test_solve()
     println(norm(s1-s2)/norm(s2))
         
         
+end
+
+function test_solve2()
+    for eps = [1e-3, 1e-6, 1e-8, 1e-10]
+        n = 5
+        s = 0.5
+        A = fraclap(n, 0.8)
+        hA = construct_hmat(A, 16, eps, 8)
+        hmat_lu!(hA)
+
+        y = rand(size(A,1))
+        g1 = copy(y)
+        w = hA\g1
+        w2 = A\y
+        println(norm(w-w2)/norm(w2))
+    end
+
+    # hB = Hmat()
+    # hmat_copy!(hB, hA)
+    # to_fmat!(hB)
+    # U = UpperTriangular(hB.C)
+    # L = LowerTriangular(hB.C)-diagm(0=>diag(hB.C))+UniformScaling(1.0)
+    # Q = copy(A)
+    # Q = Q[hB.P,:]
+    # println(norm(L*U-Q, Inf))
+
+    # showmat(L)
+    # showmat(U)
+    # println(hB.P)
+    
+    # y = rand(hA.m)
+    # w = y[hB.P]
+    # g2 = L\w
+    # s2 = U\g2
+
+    # g1 = copy(y)
+    # hmat_solve!(hA, g1, true)    
+    # println(norm(g1-g2)/norm(g2))
+    # hmat_solve!(hA, g1, false)
+    # println(norm(g1-s2)/norm(s2))
+
+    # s0 = A\y
+    # s3 = U\(L\y[hB.P])
+    # println(norm(s0-s3)/norm(s0))
+    # println(norm(s0-s2)/norm(s0))
+
+    
 end
 

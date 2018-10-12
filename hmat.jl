@@ -19,34 +19,42 @@ if !@isdefined Hmat
 end
 
 # utilities
-function consistency(H::Hmat)
-    @assert H.m>0
-    @assert H.n>0
-    if H.is_rkmatrix
-        @assert size(H.A,1)==H.m
-        @assert size(H.B,1)==H.n
-    elseif H.is_fullmatrix
-        if !(size(H.C,1)==H.m && size(H.C,2)==H.n)
-            error("$(size(H.C))!=[$(H.m), $(H.n)]")
+function consistency(H, L=@__LINE__)
+    try
+        if H.m==0 || H.n==0
+            @assert false
         end
-    elseif H.is_hmat
-        n1 = Int(round(H.n/2))
-        m1 = Int(round(H.m/2))
-        size(H.children[1,1].m)==m1
-        size(H.children[1,1].n)==m1
-        size(H.children[1,2].m)==m1
-        size(H.children[1,2].n)==H.n-n1
-        size(H.children[2,1].m)==H.m-m1
-        size(H.children[2,1].n)==n1
-        size(H.children[2,2].m)==H.m-m1
-        size(H.children[2,2].n)==H.n-n1
-        for i = 1:2
-            for j = 1:2
-                consistency(H.children[i,j])
+        if H.is_rkmatrix
+            @assert size(H.A,1)==H.m
+            @assert size(H.B,1)==H.n
+        elseif H.is_fullmatrix
+            if !(size(H.C,1)==H.m && size(H.C,2)==H.n)
+                error("$(size(H.C))!=[$(H.m), $(H.n)]")
+            end
+        elseif H.is_hmat
+            n1 = Int(round(H.n/2))
+            m1 = Int(round(H.m/2))
+            size(H.children[1,1].m)==m1
+            size(H.children[1,1].n)==m1
+            size(H.children[1,2].m)==m1
+            size(H.children[1,2].n)==H.n-n1
+            size(H.children[2,1].m)==H.m-m1
+            size(H.children[2,1].n)==n1
+            size(H.children[2,2].m)==H.m-m1
+            size(H.children[2,2].n)==H.n-n1
+            for i = 1:2
+                for j = 1:2
+                    consistency(H.children[i,j])
+                end
             end
         end
+    catch
+        println("Assertion: $L")
+        println(H)
+        @assert false
     end
 end
+
 
 function fmat(A::Array{Float64})
     H = Hmat()
@@ -98,6 +106,7 @@ end
 
 
 function rkmat_add!(a, b, scalar, method=1)
+    
     if method==1
         a.A, a.B = svdtrunc(a.A, a.B, scalar*b.A, b.B)
     else
@@ -148,7 +157,6 @@ function Base.:+(a::Hmat, b::Hmat)
 end
 
 function Base.:*(a::Hmat, b::Hmat)
-    @assert a.n==b.m
     H = Hmat(m=a.m, n = b.n)
     if a.is_fullmatrix && b.is_fullmatrix
         H.C = a.C * b.C
@@ -219,7 +227,7 @@ function Base.:*(a::Hmat, v::AbstractArray{Float64})
     end
 end
 
-function hmat_matvec!(r::Array{Float64}, a::Hmat, v::Array{Float64})
+function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::Array{Float64})
     if a.is_fullmatrix
         r[:] += a.C * v
     elseif a.is_rkmatrix
@@ -367,20 +375,24 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
     end
 end
 
-function hmat_lu!(H)
+function LinearAlgebra.:lu!(H::Hmat)    
     if H.is_rkmatrix
         error("H should not be a low-rank matrix")
     end
 
     if H.is_fullmatrix
-        L, U, H.P = lu(H.C)
+        print("LU ")
+        @time L, U, H.P = lu(H.C)
         H.C = L - UniformScaling(1.0) + U
     else
-        hmat_lu!(H.children[1,1])
-        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, true)
-        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)
-        hmat_add!(H.children[2,2], H.children[2,1]*H.children[1,2], -1.0)
-        hmat_lu!(H.children[2,2])
+        lu!(H.children[1,1])
+        print("L ")
+        @time hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, true)
+        print("U ")
+        @time hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)
+        print("+ ")
+        @time hmat_add!(H.children[2,2], H.children[2,1]*H.children[1,2], -1.0)
+        lu!(H.children[2,2])
     end
 end
 
@@ -396,6 +408,7 @@ function hmat_solve!(a::Hmat, y::AbstractArray{Float64}, lower=true)
             # y[:] = getl(a.C, true)\y
         elseif a.is_hmat
             k = a.children[1,1].m
+            # println("$k, $(length(y))")
             @views begin
                 hmat_solve!(a.children[1,1], y[1:k], true)
                 y[k+1:end] -= a.children[2,1]*y[1:k]
@@ -431,11 +444,15 @@ end
 
 
 ############### algebraic constructor ##################
-function construct_hmat(A, Nleaf, Erank, Rrank)
+function construct_hmat(A, Nleaf, Erank, Rrank, MaxBlock=64)
     function helper(H, A)
-        U,S,V = svd(A)
-        k = rank_truncate(S,Erank)
         H.m, H.n = size(A,1), size(A, 2)
+        if size(A,1)>MaxBlock
+            k = Rrank
+        else
+            U,S,V = svd(A)
+            k = rank_truncate(S,Erank)
+        end
         if k < Rrank
             H.is_rkmatrix = true
             H.A = U[:,1:k]

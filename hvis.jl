@@ -242,11 +242,11 @@ function test_solve()
     w = y[hB.P]
     g2 = L\w
 
-    println(norm(g1-g2, Inf))
+    println(norm(g1-g2)/norm(g2))
     
     s1 =  hmat_solve(hA, g2, false)
     s2 = U\g2
-    println(norm(s1-s2, Inf))
+    println(norm(s1-s2)/norm(s2))
         
         
 end

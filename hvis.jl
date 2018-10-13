@@ -292,17 +292,18 @@ function profile_lu(n=10, minN=64, eps=1e-6, maxR=16, maxN = 256)
     @time L,U,P = lu(A)
 
     w = hA\y;
-    @time begin
+    t1 = @timed begin
         for i = 1:10
             w = hA\y;
         end
     end
     g = U\(L\y[P])
-    @time begin
+    t2 = @timed begin
         for i = 1:10
             g = U\(L\y[P])
         end
     end
+    @printf("Hmat=%0.6f seconds(%d bytes)\nLU  =%0.6f seconds(%d bytes)", (t1[2])/10, t1[3], (t2[2])/10, t2[3])
     println(norm(g-w)/norm(g))
     # Juno.profiletree()
     # Juno.profiler()

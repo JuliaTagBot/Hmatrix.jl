@@ -2,6 +2,7 @@ using Parameters
 using LinearAlgebra
 using PyPlot
 using Printf
+using Statistics
 
 if !@isdefined Hmat
     @with_kw mutable struct Hmat

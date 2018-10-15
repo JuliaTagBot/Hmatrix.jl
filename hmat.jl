@@ -56,6 +56,32 @@ function consistency(H, L=@__LINE__)
     end
 end
 
+function info(H::Hmat)
+    dmat::Int64 = 0
+    rkmat::Int64 = 0
+    level::Int64 = 0
+    function helper(H::Hmat, l::Int)
+        # global dmat
+        # global rkmat
+        # global level
+        if H.is_fullmatrix
+            dmat += 1
+            level = max(l, level)
+        elseif H.is_rkmatrix
+            rkmat += 1
+            level = max(l, level)
+        else
+            for i = 1:2
+                for j = 1:2
+                    helper(H.children[i,j], l+1)
+                end
+            end
+        end
+    end
+    helper(H, 1)
+    return dmat, rkmat, level
+end
+
 
 function fmat(A::Array{Float64})
     H = Hmat()
@@ -101,8 +127,16 @@ function compress(C, eps=1e-6, N = nothing)
 end
 
 function svdtrunc(A1, B1, A2, B2)
-    C = A1*B1' + A2*B2'
-    return compress(C, 1e-6, Inf)
+    # C = A1*B1' + A2*B2'
+    # return compress(C, 1e-6, Inf)
+
+    FA = qr([A1 A2])
+    FB = qr([B1 B2])
+    U,S,V = svd(FA.R*FB.R')
+    k = rank_truncate(S, 1e-6)
+    A = FA.Q * U[:,1:k] * diagm(0=>S[1:k])
+    B = FB.Q * V[:,1:k]
+    return A, B
 end
 
 
@@ -110,6 +144,7 @@ function rkmat_add!(a, b, scalar, method=1)
 
     if method==1
         a.A, a.B = svdtrunc(a.A, a.B, scalar*b.A, b.B)
+        # svdtrunc!(a, b)
     else
         error("Method not defined!")
     end
@@ -467,13 +502,20 @@ function hmat_solve!(a::Hmat, y::AbstractArray{Float64}, lower=true)
 end
 
 # a is factorized hmatrix
+# these implementations makes H a preconditioner
+function LinearAlgebra.:ldiv!(x::AbstractArray{Float64}, a::Hmat, y::AbstractArray{Float64})
+    x = deepcopy(y)
+    hmat_solve!(a, y, true)
+    hmat_solve!(a, y, false)
+end
+
 function LinearAlgebra.:ldiv!(a::Hmat, y::AbstractArray{Float64})
     hmat_solve!(a, y, true)
     hmat_solve!(a, y, false)
 end
 
 function Base.:\(a::Hmat, y::AbstractArray{Float64})
-    w = copy(y)
+    w = deepcopy(y)
     ldiv!(a, w)
     return w
 end
@@ -492,7 +534,7 @@ function construct_hmat(A, Nleaf, Erank, Rrank, MaxBlock=64)
         if k < Rrank
             H.is_rkmatrix = true
             H.A = U[:,1:k]
-            H.B = (diagm(0=>S[1:k])*V'[1:k,:])'
+            H.B = V[:,1:k] * diagm(0=>S[1:k])
         elseif size(A,1)<=Nleaf
             H.is_fullmatrix = true
             H.C = copy(A)

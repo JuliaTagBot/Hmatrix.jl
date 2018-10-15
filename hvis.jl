@@ -1,9 +1,49 @@
 include("hmat.jl")
 include("hexample.jl")
+
 using Profile
 using ProfileView
+using PyCall
+using IterativeSolvers
+using AlgebraicMultigrid
+
+@pyimport numpy
+@pyimport scipy.signal as ss
+@pyimport scipy.sparse.linalg as ssl
+@pyimport scipy.stats as sstats
+@pyimport scipy.special as ssp
 
 
+function pygmres(A, x, op=nothing)
+    N = length(x)
+    lo = ssl.LinearOperator((N, N), matvec=A)
+    if op==nothing
+        Mop = ssl.LinearOperator((N, N), matvec=x->x)
+    else
+        Mop = ssl.LinearOperator((N, N), matvec=op)
+    end
+    y = ssl.gmres(lo, x, M = Mop)[1]
+    return y
+end
+
+function pygmres_mat_callback(rk)
+    global cnt
+    cnt += 1
+end
+
+function pygmres_mat(A, x, op=nothing)
+    global cnt
+    cnt = 0
+    N = length(x)
+    lo = ssl.LinearOperator((N, N), matvec=A)
+    if op==nothing
+        Mop = ssl.LinearOperator((N, N), matvec=x->x)
+    else
+        Mop = ssl.LinearOperator((N, N), matvec=op)
+    end
+    y = ssl.gmres(lo, x, callback=PyCall.jlfun2pyfun(pygmres_mat_callback),M = Mop)[1]
+    return y, cnt
+end
 
 function showmat(A)
     println("===================")
@@ -268,7 +308,7 @@ end
 
 function test_solve2()
     for eps = [1e-3, 1e-6, 1e-8, 1e-10]
-        n = 5
+        n = 10
         s = 0.5
         A = fraclap(n, 0.8)
         hA = construct_hmat(A, 16, eps, 8)
@@ -282,14 +322,69 @@ function test_solve2()
     end
 end
 
-function profile_lu(n=10, minN=64, eps=1e-6, maxR=16, maxN = 256)
+function profile_lu(n=10, minN=16, eps=1e-6, maxR=8, maxN = 256)
+    println("=======================================================")
     println("n=$(2^n), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
     s = 0.5
     A = fraclap(n, 0.8)
     y = rand(size(A,1))
-    hA = construct_hmat(A, minN, eps, maxR, maxN);
+    
+    @time hA = construct_hmat(A, minN, eps, maxR, maxN);
+    info1 = info(hA)
     @time lu!(hA);
+    info2 = info(hA)
     @time L,U,P = lu(A)
+
+    w = hA\y;
+    g = A\y
+    println(norm(w-g)/norm(g))
+    t1 = @timed begin
+        for i = 1:10
+            w = hA\y;
+        end
+    end
+    
+    t2 = @timed begin
+        for i = 1:10
+            g = U\(L\y[P])
+        end
+    end
+    @printf("Hmat=%0.6f seconds(%d bytes)\nLU  =%0.6f seconds(%d bytes)\n", (t1[2])/10, t1[3], (t2[2])/10, t2[3])
+    @printf("Before LU: full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
+    @printf("After LU: full=%d, rk=%d, level=%d\n", info2[1], info2[2], info2[3])
+    println(norm(g-w)/norm(g))
+end
+
+function iterative_hmat(n=10, minN=16, eps=1e-6, maxR=8, maxN = 256)
+    println("=======================================================")
+    println("n=$(2^n), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
+    # s = 0.8
+    # A = fraclap(n, 0.8)
+    A = realmatrix(2^n)
+    y = rand(size(A,1))
+    g = A\y
+    # w = pygmres(x->A*x, y)
+    
+    @time hA = construct_hmat(A, minN, eps, maxR, maxN);
+    @time lu!(hA);
+    cnt = 0
+    # w, cnt = pygmres_mat(x->A*x, y)
+    # @printf("no preconditioner count=\033[32;1;4m%d\033[0m, Error=%0.6g \n", cnt, norm(g-w)/norm(g))
+    w, cnt = pygmres_mat(x->A*x, y, x->hA\x)
+    @printf("H-mat count            =\033[32;1;4m%d\033[0m, Error=%0.6g \n", cnt, norm(g-w)/norm(g))
+
+end
+
+function profile_lu2(n=2^10, minN=16, eps=1e-6, maxR=8, maxN = 256)
+    println("=======================================================")
+    s = 0.5
+    A = fraclap2(n, 0.8)
+    println("n=$(size(A,1)), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
+    y = rand(size(A,1))
+    t2 = @timed hA = construct_hmat(A, minN, eps, maxR, maxN);
+    info1 = info(hA)
+    t0 = @timed lu!(hA);
+    info2 = info(hA)
 
     w = hA\y;
     t1 = @timed begin
@@ -297,21 +392,16 @@ function profile_lu(n=10, minN=64, eps=1e-6, maxR=16, maxN = 256)
             w = hA\y;
         end
     end
-    g = U\(L\y[P])
-    t2 = @timed begin
-        for i = 1:10
-            g = U\(L\y[P])
-        end
-    end
-    @printf("Hmat=%0.6f seconds(%d bytes)\nLU  =%0.6f seconds(%d bytes)", (t1[2])/10, t1[3], (t2[2])/10, t2[3])
-    println(norm(g-w)/norm(g))
-    # Juno.profiletree()
-    # Juno.profiler()
+    @printf("Hmat=%0.6f seconds(%d bytes)\nLU  =%0.6f seconds(%d bytes)\n", (t1[2])/10, t1[3], (t2[2])/10, t2[3])
+    @printf("Before LU: full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
+    @printf("After LU: full=%d, rk=%d, level=%d\n", info2[1], info2[2], info2[3])
+    @printf("Hconstruct = \033[31;1;4m%0.6f\033[0m seconds\nLU=\033[32;1;4m%0.6f\033[0m seconds(%d bytes)\nMatVec=\033[33;1;4m%0.6f\033[0m seconds(%d bytes)\n", (t2[2]), (t0[2])/10, t0[3], (t1[2])/10, t1[3])
 end
 
 
+
 function test_matvec()
-    eps = 1e-2
+    eps = 1e-8
     n = 10
     s = 0.5
     A = fraclap(n, 0.2)
@@ -324,4 +414,29 @@ function test_matvec()
     res = A*z
     # println(w)
     println(norm(res-w)/norm(res))
+end
+
+function go()
+    # speed up around 10 times.
+    # Factorization around 10 times.
+    # for n = 0:5
+    #     M = 2^n
+    #     # profile_lu2(9+n, 16*M, 1e-3, 8,  512)
+    #     profile_lu2(9+n, 32, 1e-2, 8,  512)
+    # end
+
+    for n = 1000:1000:20000
+        # profile_lu2(9+n, 16*M, 1e-3, 8,  512)
+        profile_lu2(n, 32, 1e-3, 8,  512)
+    end
+
+end
+
+function go2()
+    # speed up around 10 times.
+    # Factorization around 10 times.
+    for n = 0:5
+        M = 2^n
+        iterative_hmat(9+n, 16*M, 1e-5, 8,  512)
+    end
 end

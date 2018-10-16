@@ -1,11 +1,12 @@
 include("hmat.jl")
 include("hexample.jl")
+include("hconstruct.jl")
 
-using Profile
-using ProfileView
+# using Profile
+# using ProfileView
 using PyCall
 using IterativeSolvers
-using AlgebraicMultigrid
+# using AlgebraicMultigrid
 
 @pyimport numpy
 @pyimport scipy.signal as ss
@@ -56,30 +57,7 @@ function showmat(A)
     println("===================")
 end
 
-function color_level(H)
-    function helper!(H, level)
-        if H.is_fullmatrix
-            H.C = ones(size(H.C))* (-rand()*0.8)
-        elseif H.is_rkmatrix
-            H.A = ones(H.m, 1)
-            H.B = ones(H.n, 1) * (level + rand()*0.8)
-        else
-            for i = 1:2
-                for j = 1:2
-                    helper!(H.children[i,j], level+1)
-                end
-            end
-        end
-    end
-    helper!(H, 0)
-    to_fmat!(H)
-    return H.C
-end
 
-function plot_hmat(H)
-    C = color_level(H)
-    matshow(C)
-end
 
 
 function test_fraclap()
@@ -360,31 +338,66 @@ function iterative_hmat(n=10, minN=16, eps=1e-6, maxR=8, maxN = 256)
     println("n=$(2^n), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
     # s = 0.8
     # A = fraclap(n, 0.8)
-    A = realmatrix(2^n)
+    if false
+        n = 2^n
+        nn = Int(n/2)
+        hA = construct1D(test_kerfun, -nn, nn-1, minN, maxR, maxN)
+        A = zeros(n, n)
+        for i = -Int(n/2):Int(n/2)-1
+            for j = -Int(n/2):Int(n/2)-1
+                A[i+Int(n/2)+1, j+Int(n/2)+1] = test_kerfun(i, j)
+            end
+        end
+    else
+        A = realmatrix(2^n)
+        @time hA = construct_hmat(A, minN, eps, maxR, maxN);
+    end
     y = rand(size(A,1))
     g = A\y
     # w = pygmres(x->A*x, y)
     
-    @time hA = construct_hmat(A, minN, eps, maxR, maxN);
     @time lu!(hA);
     cnt = 0
-    # w, cnt = pygmres_mat(x->A*x, y)
-    # @printf("no preconditioner count=\033[32;1;4m%d\033[0m, Error=%0.6g \n", cnt, norm(g-w)/norm(g))
+    w, cnt = pygmres_mat(x->A*x, y)
+    @printf("no preconditioner count=\033[32;1;4m%d\033[0m, Error=%0.6g \n", cnt, norm(g-w)/norm(g))
     w, cnt = pygmres_mat(x->A*x, y, x->hA\x)
     @printf("H-mat count            =\033[32;1;4m%d\033[0m, Error=%0.6g \n", cnt, norm(g-w)/norm(g))
 
 end
 
-function profile_lu2(n=2^10, minN=16, eps=1e-6, maxR=8, maxN = 256)
+function profile_lu2(n=2^10, minN=32, eps=1e-6, maxR=8, maxN = 256)
     println("=======================================================")
     s = 0.5
-    A = fraclap2(n, 0.8)
+    # A = fraclap2(n, 0.8)
+    # A = zeros(n, n)
+    # for i = -Int(n/2):Int(n/2)-1
+    #     for j = -Int(n/2):Int(n/2)-1
+    #         A[i+Int(n/2)+1, j+Int(n/2)+1] = test_kerfun(i, j)
+    #     end
+    # end
+    # t2 = @timed hA = construct_hmat(A, minN, eps, maxR, maxN);
+    
+    nn = Int(n/2)
+    t2 = @timed hA = construct1D(test_kerfun, -nn, nn-1, minN, maxR, maxN)
+    A = zeros(n, n)
+    for i = -Int(n/2):Int(n/2)-1
+        for j = -Int(n/2):Int(n/2)-1
+            A[i+Int(n/2)+1, j+Int(n/2)+1] = test_kerfun(i, j)
+        end
+    end
+   
+    
+    
     println("n=$(size(A,1)), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
     y = rand(size(A,1))
-    t2 = @timed hA = construct_hmat(A, minN, eps, maxR, maxN);
+
     info1 = info(hA)
-    t0 = @timed lu!(hA);
+    t0 = @timed lu!(hA)
     info2 = info(hA)
+
+    
+    F = lu(A)
+    t4 = @timed F\y
 
     w = hA\y;
     t1 = @timed begin
@@ -392,10 +405,16 @@ function profile_lu2(n=2^10, minN=16, eps=1e-6, maxR=8, maxN = 256)
             w = hA\y;
         end
     end
+    g = A\y;
+    err = norm(w-g)/norm(g)
+    t3 = @timed lu(A)
     @printf("Hmat=%0.6f seconds(%d bytes)\nLU  =%0.6f seconds(%d bytes)\n", (t1[2])/10, t1[3], (t2[2])/10, t2[3])
     @printf("Before LU: full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
     @printf("After LU: full=%d, rk=%d, level=%d\n", info2[1], info2[2], info2[3])
     @printf("Hconstruct = \033[31;1;4m%0.6f\033[0m seconds\nLU=\033[32;1;4m%0.6f\033[0m seconds(%d bytes)\nMatVec=\033[33;1;4m%0.6f\033[0m seconds(%d bytes)\n", (t2[2]), (t0[2])/10, t0[3], (t1[2])/10, t1[3])
+    @printf("Naive LU = \033[31;1;4m%0.6f\033[0m seconds(%d bytes)\nNaive MatVec = \033[31;1;4m%0.6f\033[0m seconds(%d bytes)\n", (t3[2]), t3[3], (t4[2]), t4[3])
+    @printf("Error = %g\n", err)
+
 end
 
 
@@ -425,12 +444,25 @@ function go()
     #     profile_lu2(9+n, 32, 1e-2, 8,  512)
     # end
 
-    for n = 1000:1000:20000
+    for n = 10:14
         # profile_lu2(9+n, 16*M, 1e-3, 8,  512)
-        profile_lu2(n, 32, 1e-3, 8,  512)
+        # profile_lu2(2^n, 32, 1e-3, 8,  512)
+        profile_lu2(2^n, 64, 1e-3, 32,  2^(n-2))
     end
 
 end
+
+function go1()
+    profile_lu2(2^11, 32, 1e-6, 8,  512)
+    Profile.clear_malloc_data()
+    Profile.init(delay=0.01)
+    Profile.clear()
+    for n = 1:4
+        profile_lu2(2^(n+10), 32, 1e-6, 8,  512*n)
+    end
+end
+
+
 
 function go2()
     # speed up around 10 times.
@@ -439,4 +471,48 @@ function go2()
         M = 2^n
         iterative_hmat(9+n, 16*M, 1e-5, 8,  512)
     end
+end
+
+function test_kerfun(i, j)
+    if i==j
+        return 5
+    else
+        return 1/(abs(i-j))^2
+    end
+end
+
+# key: dense blocks should be as small as possible, max blocks should increase
+function test_hconstruct(N=1024)
+    n = Int(N/2)
+    Nleaf = 32
+    Rrank = 8
+    Erank = 1e-6
+    MaxBlock = Int(round(N/4))
+    @time H = construct1D(test_kerfun, -n, n-1, Nleaf, Rrank, MaxBlock)
+    D = zeros(N, N)
+    for i = -n:n-1
+        for j = -n:n-1
+            D[i+n+1, j+n+1] = test_kerfun(i, j)
+        end
+    end
+    # matshow(H)
+    info1 = info(H)
+    @printf(" full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
+    to_fmat!(H)
+    @time G = construct_hmat(D, Nleaf, Erank, Rrank, MaxBlock)
+    @printf("Error = %g\n", norm(H.C-D,2)/norm(D,2))
+    lu!(H)
+
+    y = rand(size(H.C,1))
+    w = D\y
+    g = H\y
+    println(norm(w-g)/norm(w))
+end
+
+function benchmark_hconstruct()
+    test_hconstruct(100)
+    Profile.clear_malloc_data()
+    Profile.init(delay=0.01)
+    Profile.clear()
+    test_hconstruct(8000)
 end

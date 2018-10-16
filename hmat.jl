@@ -3,6 +3,8 @@ using LinearAlgebra
 using PyPlot
 using Printf
 using Statistics
+using Profile
+using LowRankApprox
 
 if !@isdefined Hmat
     @with_kw mutable struct Hmat
@@ -106,10 +108,11 @@ function rank_truncate(S, eps=1e-6)
         return 0
     end
     k = findlast(S/S[1] .> eps)
-    if k==nothing
-        k = 0
+    if isa(k, Nothing)
+        return 0
+    else
+        return k
     end
-    return k
 end
 
 function compress(C, eps=1e-6, N = nothing)
@@ -411,7 +414,6 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 return
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.A)
-
         elseif a.is_fullmatrix && b.is_hmat
             b.is_fullmatrix = true
             to_fmat!(b)
@@ -419,8 +421,6 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 b.C = b.C[a.P,:]
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
-
-
         elseif a.is_hmat && b.is_hmat
             hmat_trisolve!(a.children[1,1], b.children[1,1], islower, unitdiag, permutation)
             hmat_trisolve!(a.children[1,1], b.children[1,2], islower, unitdiag, permutation)
@@ -435,12 +435,10 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
             hmat_copy!(H, a)
             to_fmat!(H)
             hmat_trisolve!(H, b, islower, unitdiag, permutation)
-
         elseif a.is_hmat && b.is_rkmatrix
             H = Hmat()
             hmat_copy!(H, a)
             to_fmat!(H)
-
             if permutation && length(a.P)>0
                 b.A = b.A[a.P,:]
             end
@@ -520,42 +518,34 @@ function Base.:\(a::Hmat, y::AbstractArray{Float64})
     return w
 end
 
-
-############### algebraic constructor ##################
-function construct_hmat(A, Nleaf, Erank, Rrank, MaxBlock=64)
-    function helper(H, A)
-        H.m, H.n = size(A,1), size(A, 2)
-        if size(A,1)>MaxBlock
-            k = Rrank
+function color_level(H)
+    function helper!(H, level)
+        if H.is_fullmatrix
+            H.C = ones(size(H.C))* (-rand()*0.8)
+        elseif H.is_rkmatrix
+            H.A = ones(H.m, 1)
+            H.B = ones(H.n, 1) * (level + rand()*0.8)
         else
-            U,S,V = svd(A)
-            k = rank_truncate(S,Erank)
-        end
-        if k < Rrank
-            H.is_rkmatrix = true
-            H.A = U[:,1:k]
-            H.B = V[:,1:k] * diagm(0=>S[1:k])
-        elseif size(A,1)<=Nleaf
-            H.is_fullmatrix = true
-            H.C = copy(A)
-        else
-            H.is_hmat = true
-            H.children = Array{Hmat}([Hmat() Hmat()
-                                    Hmat() Hmat()])
-            n = Int(round.(size(A,1)/2))
-            m = Int(round.(size(A,2)/2))
-            @views begin
-                helper(H.children[1,1], A[1:n, 1:m])
-                helper(H.children[1,2], A[1:n, m+1:end])
-                helper(H.children[2,1], A[n+1:end, 1:m])
-                helper(H.children[2,2], A[n+1:end, m+1:end])
+            for i = 1:2
+                for j = 1:2
+                    helper!(H.children[i,j], level+1)
+                end
             end
         end
-        # consistency(H)
     end
+    helper!(H, 0)
+    to_fmat!(H)
+    return H.C
+end
 
-    H = Hmat()
-    Ac = copy(A)
-    helper(H, Ac)
-    return H
+function plot_hmat(H)
+    C = color_level(H)
+    matshow(C)
+end
+
+function PyPlot.:matshow(H::Hmat)
+    P = Hmat()
+    hmat_copy!(P, H)
+    C = color_level(P)
+    matshow(C)
 end

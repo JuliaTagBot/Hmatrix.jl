@@ -365,7 +365,7 @@ function iterative_hmat(n=10, minN=16, eps=1e-6, maxR=8, maxN = 256)
 
 end
 
-function profile_lu2(n=2^10, minN=32, eps=1e-6, maxR=8, maxN = 256)
+function profile_lu2(n=2^10, minN=32, eps=1e-6, maxR=8, maxN = 256; fast=false)
     println("=======================================================")
     s = 0.5
     # A = fraclap2(n, 0.8)
@@ -379,25 +379,24 @@ function profile_lu2(n=2^10, minN=32, eps=1e-6, maxR=8, maxN = 256)
     
     nn = Int(n/2)
     t2 = @timed hA = construct1D(test_kerfun, -nn, nn-1, minN, maxR, maxN)
-    A = zeros(n, n)
-    for i = -Int(n/2):Int(n/2)-1
-        for j = -Int(n/2):Int(n/2)-1
-            A[i+Int(n/2)+1, j+Int(n/2)+1] = test_kerfun(i, j)
+
+    if !fast
+        A = zeros(n, n)
+        for i = -Int(n/2):Int(n/2)-1
+            for j = -Int(n/2):Int(n/2)-1
+                A[i+Int(n/2)+1, j+Int(n/2)+1] = test_kerfun(i, j)
+            end
         end
     end
    
     
     
-    println("n=$(size(A,1)), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
-    y = rand(size(A,1))
+    println("n=$(n), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
+    y = rand(n)
 
     info1 = info(hA)
     t0 = @timed lu!(hA)
     info2 = info(hA)
-
-    
-    F = lu(A)
-    t4 = @timed F\y
 
     w = hA\y;
     t1 = @timed begin
@@ -405,15 +404,21 @@ function profile_lu2(n=2^10, minN=32, eps=1e-6, maxR=8, maxN = 256)
             w = hA\y;
         end
     end
-    g = A\y;
-    err = norm(w-g)/norm(g)
-    t3 = @timed lu(A)
-    @printf("Hmat=%0.6f seconds(%d bytes)\nLU  =%0.6f seconds(%d bytes)\n", (t1[2])/10, t1[3], (t2[2])/10, t2[3])
+
+    if !fast
+        F = lu(A)
+        t4 = @timed F\y
+        g = A\y;
+        err = norm(w-g)/norm(g)
+        t3 = @timed lu(A)
+    end
     @printf("Before LU: full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
     @printf("After LU: full=%d, rk=%d, level=%d\n", info2[1], info2[2], info2[3])
-    @printf("Hconstruct = \033[31;1;4m%0.6f\033[0m seconds\nLU=\033[32;1;4m%0.6f\033[0m seconds(%d bytes)\nMatVec=\033[33;1;4m%0.6f\033[0m seconds(%d bytes)\n", (t2[2]), (t0[2])/10, t0[3], (t1[2])/10, t1[3])
-    @printf("Naive LU = \033[31;1;4m%0.6f\033[0m seconds(%d bytes)\nNaive MatVec = \033[31;1;4m%0.6f\033[0m seconds(%d bytes)\n", (t3[2]), t3[3], (t4[2]), t4[3])
-    @printf("Error = %g\n", err)
+    @printf("Hconstruct = \033[31;1;4m%0.6f\033[0m seconds\nLU=\033[32;1;4m%0.6f\033[0m seconds(%d bytes)\nMatVec=\033[33;1;4m%0.6f\033[0m seconds(%d bytes)\n", (t2[2]), t0[2], t0[3], (t1[2])/10, t1[3])
+    if !fast
+        @printf("Naive LU = \033[31;1;4m%0.6f\033[0m seconds(%d bytes)\nNaive MatVec = \033[31;1;4m%0.6f\033[0m seconds(%d bytes)\n", (t3[2]), t3[3], (t4[2]), t4[3])
+        @printf("Error = %g\n", err)
+    end
 
 end
 
@@ -436,18 +441,10 @@ function test_matvec()
 end
 
 function go()
-    # speed up around 10 times.
-    # Factorization around 10 times.
-    # for n = 0:5
-    #     M = 2^n
-    #     # profile_lu2(9+n, 16*M, 1e-3, 8,  512)
-    #     profile_lu2(9+n, 32, 1e-2, 8,  512)
-    # end
-
     for n = 10:14
         # profile_lu2(9+n, 16*M, 1e-3, 8,  512)
         # profile_lu2(2^n, 32, 1e-3, 8,  512)
-        profile_lu2(2^n, 64, 1e-3, 32,  2^(n-2))
+        profile_lu2(2^n, 64, 1e-3, 32,  2^(n-3), fast=false)
     end
 
 end

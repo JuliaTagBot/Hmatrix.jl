@@ -552,3 +552,10 @@ function PyPlot.:matshow(H::Hmat)
     C = color_level(P)
     matshow(C)
 end
+
+function check_if_equal(H::Hmat, C::Array{Float64})
+    G = Hmat()
+    hmat_copy!(G, H)
+    to_fmat!(G)
+        println("Error = $(norm(C-G.C,2)/norm(C,2))")
+end

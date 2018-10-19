@@ -169,6 +169,17 @@ function Merton_Kernel(eps, r)
     return f, alpha, beta
 end
 
+function Zero_Kernel(eps, r)
+    f = (x,y)->0.0
+    alpha = []
+    beta = []
+    for i = 0:r-1
+        push!(alpha, t->0.0)
+        push!(beta, t->0.0)
+    end
+    return f, alpha, beta
+end
+
 function test_r_low_rank_block()
     h = 0.01
     eps = 1
@@ -191,8 +202,8 @@ function admissible2(s1, e1, s2, e2)
         else
             d = s2-e1
         end
-        # return d>p
-        return true
+        return d>p
+        # return true
     else
         return false
     end
@@ -257,3 +268,4 @@ function test_construct1D_low_rank()
     println(norm(G-H.C,2)/norm(G,2))
     end
 end
+

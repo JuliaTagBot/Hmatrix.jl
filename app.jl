@@ -65,11 +65,11 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-4))
     f, alpha, beta = Merton_Kernel(1, 10)
     function nf(x,y)
         if x==y
-            return -2/h+f(x,y)
+            return -10+f(x,y)
         elseif y-x==h
-            return 1/h+f(x,y)
+            return f(x,y)
         elseif x-y==h
-            return 1/h+f(x,y)
+            return f(x,y)
         else
             return f(x,y)
         end

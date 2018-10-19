@@ -1,0 +1,54 @@
+Matrix       : full=16, rk=72, level=5
+Construction : (Hmat)0.008689 sec (Full)0.007242 sec
+LU           : (Hmat)0.191661 sec (Full)0.011433 sec
+MatVec       : (Hmat)0.000093 sec (Full)0.000216 sec
+Error        : 3.50336e-12
+=======================================================
+======================= n = 10 ========================
+Matrix       : full=32, rk=104, level=6
+Construction : (Hmat)0.017516 sec (Full)0.032299 sec
+LU           : (Hmat)0.045753 sec (Full)0.022269 sec
+MatVec       : (Hmat)0.000216 sec (Full)0.000942 sec
+Error        : 2.66775e-12
+=======================================================
+======================= n = 11 ========================
+Matrix       : full=64, rk=168, level=7
+Construction : (Hmat)0.035640 sec (Full)0.140912 sec
+LU           : (Hmat)0.197669 sec (Full)0.092403 sec
+MatVec       : (Hmat)0.000798 sec (Full)0.003316 sec
+Error        : 6.67542e-13
+=======================================================
+======================= n = 12 ========================
+Matrix       : full=128, rk=296, level=8
+Construction : (Hmat)0.078854 sec (Full)2.424352 sec
+LU           : (Hmat)0.463935 sec (Full)0.330625 sec
+MatVec       : (Hmat)0.002714 sec (Full)0.016669 sec
+Error        : 1.06435e-12
+=======================================================
+======================= n = 13 ========================
+Matrix       : full=256, rk=552, level=9
+Construction : (Hmat)0.175097 sec (Full)9.439804 sec
+LU           : (Hmat)1.482139 sec (Full)2.003467 sec
+MatVec       : (Hmat)0.019325 sec (Full)0.063250 sec
+Error        : 1.24398e-13
+=======================================================
+======================= n = 14 ========================
+Matrix       : full=512, rk=1064, level=10
+Construction : (Hmat)0.547844 sec (Full)38.269636 sec
+LU           : (Hmat)6.854406 sec (Full)13.975191 sec
+MatVec       : (Hmat)0.146372 sec (Full)0.276132 sec
+Error        : 6.26276e-13
+=======================================================
+======================= n = 15 ========================
+Matrix       : full=1024, rk=2088, level=11
+Construction : (Hmat)1.430828 sec (Full)153.226121 sec
+LU           : (Hmat)32.408370 sec (Full)102.960891 sec
+MatVec       : (Hmat)0.345154 sec (Full)1.019232 sec
+Error        : 2.25742e-13
+=======================================================
+======================= n = 16 ========================
+Matrix       : full=2048, rk=4136, level=12
+Construction : (Hmat)2.398514 sec (Full)613.471725 sec
+LU           : (Hmat)121.318446 sec (Full)791.579101 sec
+MatVec       : (Hmat)1.593998 sec (Full)4.446882 sec
+Error        : 1.6305e-13

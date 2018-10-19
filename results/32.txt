@@ -1,0 +1,53 @@
+======================= n = 9 ========================
+Matrix       : full=16, rk=72, level=5, compress=0.375000, storage=98304
+Construction : (Hmat)0.580898 sec 
+LU           : (Hmat)1.291331 sec 
+MatVec       : (Hmat)0.000103 sec 
+=======================================================
+======================= n = 10 ========================
+Matrix       : full=32, rk=104, level=6, compress=0.207031, storage=217088
+Construction : (Hmat)0.020268 sec 
+LU           : (Hmat)0.052359 sec 
+MatVec       : (Hmat)0.000246 sec 
+=======================================================
+======================= n = 11 ========================
+Matrix       : full=64, rk=168, level=7, compress=0.113281, storage=475136
+Construction : (Hmat)0.046678 sec 
+LU           : (Hmat)0.090055 sec 
+MatVec       : (Hmat)0.000860 sec 
+=======================================================
+======================= n = 12 ========================
+Matrix       : full=128, rk=296, level=8, compress=0.061523, storage=1.03219e+06
+Construction : (Hmat)0.088961 sec 
+LU           : (Hmat)0.369963 sec 
+MatVec       : (Hmat)0.003037 sec 
+=======================================================
+======================= n = 13 ========================
+Matrix       : full=256, rk=552, level=9, compress=0.033203, storage=2.22822e+06
+Construction : (Hmat)0.212817 sec 
+LU           : (Hmat)1.200731 sec 
+MatVec       : (Hmat)0.018517 sec 
+=======================================================
+======================= n = 14 ========================
+Matrix       : full=512, rk=1064, level=10, compress=0.017822, storage=4.78413e+06
+Construction : (Hmat)0.393082 sec 
+LU           : (Hmat)6.056000 sec 
+MatVec       : (Hmat)0.083489 sec 
+=======================================================
+======================= n = 15 ========================
+Matrix       : full=1024, rk=2088, level=11, compress=0.009521, storage=1.02236e+07
+Construction : (Hmat)0.909786 sec 
+LU           : (Hmat)32.433587 sec 
+MatVec       : (Hmat)0.349492 sec 
+=======================================================
+======================= n = 16 ========================
+Matrix       : full=2048, rk=4136, level=12, compress=0.005066, storage=2.1758e+07
+Construction : (Hmat)1.989845 sec 
+LU           : (Hmat)114.720986 sec 
+MatVec       : (Hmat)1.687593 sec 
+=======================================================
+======================= n = 17 ========================
+Matrix       : full=4096, rk=8232, level=13, compress=0.002686, storage=4.61373e+07
+Construction : (Hmat)3.591883 sec 
+LU           : (Hmat)496.497561 sec 
+MatVec       : (Hmat)6.479786 sec 

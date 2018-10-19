@@ -1,0 +1,48 @@
+=========== H MATRIX =============
+n=5
+Explicit Matrix: 0.434254749 seconds, 27664834 bytes
+Implicit Matrix: 0.205951151 seconds, 15970729 bytes
+LU: 0.001555077 seconds, 584384 bytes
+Iteration: 0.42294886 seconds, 56436846 bytes
+=========== H MATRIX =============
+n=10
+Explicit Matrix: 0.084361228 seconds, 42041008 bytes
+Implicit Matrix: 0.075786344 seconds, 41813680 bytes
+LU: 0.234377475 seconds, 92847129 bytes
+Iteration: 0.538935378 seconds, 244272000 bytes
+=========== H MATRIX =============
+n=11
+Explicit Matrix: 0.427059029 seconds, 91738160 bytes
+Implicit Matrix: 0.188108429 seconds, 90363952 bytes
+LU: 0.435323087 seconds, 308127216 bytes
+Iteration: 2.623792165 seconds, 555328000 bytes
+=========== H MATRIX =============
+n=12
+Explicit Matrix: 0.530075405 seconds, 198401584 bytes
+Implicit Matrix: 0.610306127 seconds, 193750576 bytes
+LU: 1.769025213 seconds, 1209188496 bytes
+Iteration: 15.012891025 seconds, 1251848000 bytes
+=========== H MATRIX =============
+n=13
+Explicit Matrix: 0.827532496 seconds, 429574160 bytes
+Implicit Matrix: 0.946439767 seconds, 416403472 bytes
+LU: 7.662927291 seconds, 4794548400 bytes
+Iteration: 26.581531698 seconds, 2792456000 bytes
+=========== H MATRIX =============
+n=14
+Explicit Matrix: 2.176675838 seconds, 924125040 bytes
+Implicit Matrix: 2.234893997 seconds, 889982832 bytes
+LU: 32.789607956 seconds, 19099898944 bytes
+Iteration: 87.113267429 seconds, 6168392000 bytes
+=========== H MATRIX =============
+n=15
+Explicit Matrix: 4.457203562 seconds, 1978017296 bytes
+Implicit Matrix: 4.376405083 seconds, 1894067728 bytes
+LU: 146.240946251 seconds, 76253422960 bytes
+Iteration: 369.278594502 seconds, 13508936000 bytes
+=========== H MATRIX =============
+n=16
+Explicit Matrix: 9.9621283 seconds, 4215970992 bytes
+Implicit Matrix: 9.908457341 seconds, 4016678064 bytes
+LU: 689.789022088 seconds, 304733934624 bytes
+Iteration: 1545.485551695 seconds, 29371464000 bytes

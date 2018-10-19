@@ -21,7 +21,7 @@
 \newcommand{\bI}[0]{\mathbf{I}}
 \newcommand{\bA}[0]{\mathbf{A}}
 \newcommand{\bbf}[0]{\mathbf{f}}
-\newcommand{\lib}[1]{\subsection*{\textcolor{blue}{#1}}}
+\newcommand{\lib}[1]{\textcolor{blue}{\section{#1}}}
 
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
@@ -153,7 +153,16 @@ The triangular solver will work differently for different situations.
 	\item If $B$ is a full matrix, then $X$ is a full matrix and $X=A^{-1}B$. Here $A$ is converted to a full matrix.
 	\item If $B$ is a low rank matrix, $B=B_1B_2'$, then $X$ is also a low rank matrix $X = (A^{-1}B_1)B_2'$.
 	\item If $A$ and $B$ are both hierarchical matrices
-	\[\left[ {\begin{array}{*{20}{c}}{{A_{11}}}&{}\\{{A_{21}}}&{{A_{22}}}\end{array}} \right]\left[ {\begin{array}{*{20}{c}}{{X_{11}}}&{{X_{12}}}\\{{X_{21}}}&{{X_{22}}}\end{array}} \right] = \left[ {\begin{array}{*{20}{c}}{{B_{11}}}&{{B_{12}}}\\{{B_{21}}}&{{B_{22}}}\end{array}} \right]\]
+	\[\left[ {\begin{array}{*{20}{c}}
+{{A_{11}}}&{}\\
+{{A_{21}}}&{{A_{22}}}
+\end{array}} \right]\left[ {\begin{array}{*{20}{c}}
+{{X_{11}}}&{{X_{12}}}\\
+{{X_{21}}}&{{X_{22}}}
+\end{array}} \right] = \left[ {\begin{array}{*{20}{c}}
+{{B_{11}}}&{{B_{12}}}\\
+{{B_{21}}}&{{B_{22}}}
+\end{array}} \right]\]
 Then we will first solve $A_{11}X_{11}=B_{11}$ and $A_{11}X_{12}=B_{12}$. Then we solve
 \begin{equation}
 	A_{22}X_{21} = B_{21}-A_{21}X_{11}\quad A_{22}X_{22} = B_{22}-A_{21}X_{12}
@@ -163,7 +172,16 @@ Then we will first solve $A_{11}X_{11}=B_{11}$ and $A_{11}X_{12}=B_{12}$. Then w
 The LU decomposition also works differently for different types of matrices. Again only full matrices and $\mathcal{H}$ matrices are considered. 
 
 For full matrices, the standard dense LU is adopted. For $\mathcal{H}$ matrices, 
-\[\left[ {\begin{array}{*{20}{c}}{{A_{11}}}&{{A_{12}}}\\{{A_{21}}}&{{A_{22}}}\end{array}} \right] = \left[ {\begin{array}{*{20}{c}}{{L_{11}}}&\\{{L_{21}}}&{{L_{22}}}\end{array}} \right]\left[ {\begin{array}{*{20}{c}}{{U_{11}}}&{{U_{12}}}\\{}&{{U_{22}}}\end{array}} \right]\]
+\[\left[ {\begin{array}{*{20}{c}}
+{{A_{11}}}&{{A_{12}}}\\
+{{A_{21}}}&{{A_{22}}}
+\end{array}} \right] = \left[ {\begin{array}{*{20}{c}}
+{{L_{11}}}&\\
+{{L_{21}}}&{{L_{22}}}
+\end{array}} \right]\left[ {\begin{array}{*{20}{c}}
+{{U_{11}}}&{{U_{12}}}\\
+{}&{{U_{22}}}
+\end{array}} \right]\]
 
 The algorithm will works as follows
 \begin{itemize}
@@ -242,7 +260,6 @@ Then the infinitesimal generator will have the form
 
 Again, we can drop the extra term $y^i(\partial_i f)(x) \mathbf{1}_{0<|y|<1}(y)$ if $\int_{\RR^d} [f(x+y)-f(x)]\nu(dy)$ is well defined. We call the L\'evy measure is \textit{regular} if this condition is fulfilled.
 
-\lib{Fokker Planck Equation}
 
 Let $T_t$ be the semigroup associated with L\'evy process, and the associated infinitesimal generator is
 \begin{multline}\label{equ:Af2}
@@ -270,7 +287,7 @@ Let $T_t$ be the semigroup associated with L\'evy process, and the associated in
  	\frac{\partial p_t(x)}{\partial t} = A^*p_t(x)\quad p_0(x) = \delta(x)
  \end{equation}
  
- \hrule
+\lib{Model Problem} 
  
  We will consider the forward or backward equation driven by the L\'evy process, where the model problem in 1D can be stated as a convection-diffusion integro-differential equation
 \begin{equation}\label{equ:ut}
@@ -369,6 +386,23 @@ we will have
 	In practice, the estimate \cref{equ:r} is quite conservative and smaller $r$ can actually work very well. 
 \end{remark}
 
+By using the $\mathcal{H}$-matrix, the storage complexity is reduced to $\mathcal{O}(N)$ which is demonstrated in \cref{fig:storage}. The construction time is also reduced to $\mathcal{O}(N)$ compared to $\mathcal{O}(N^2)$ for full matrices. 
+
+
+\begin{figure}[htpb]
+\centering
+\scalebox{0.6}{\input{figures/storage.pgf}}
+\caption{By using the $\mathcal{H}$-matrix, the storage complexity is reduced to $\mathcal{O}(N)$.}
+\label{fig:storage}
+\end{figure}
+
+\begin{figure}[htpb]
+\centering
+\includegraphics[scale=0.6]{figures/construction.eps}
+\caption{By using the $\mathcal{H}$-matrix, the construction complexity is reduced to $\mathcal{O}(N)$.}
+\label{fig:construction}
+\end{figure}
+
 \hrule
 
 
@@ -389,7 +423,10 @@ Therefore, we have
 \begin{equation}
   {A_{ij}} = 
   \begin{cases}
-  	{\frac{{2a}}{{{h^2}}} - c + \lambda h} & i=j\\{ - \frac{a}{{{h^2}}} + \frac{b}{{2h}} - {\nu _{ - 1}h}} & j=i-1\\{ - \frac{a}{{{h^2}}} - \frac{b}{{2h}} - {\nu _1}h} & j=i+1\\{ - {\nu _{j - i}h}} & |j-i|\geq 2
+  	{\frac{{2a}}{{{h^2}}} - c + \lambda h} & i=j\\
+{ - \frac{a}{{{h^2}}} + \frac{b}{{2h}} - {\nu _{ - 1}h}} & j=i-1\\
+{ - \frac{a}{{{h^2}}} - \frac{b}{{2h}} - {\nu _1}h} & j=i+1\\
+{ - {\nu _{j - i}h}} & |j-i|\geq 2
   \end{cases}
 \end{equation}
 \hrule
@@ -442,9 +479,12 @@ The Fourier transform of the numerical scheme gives
 
 Note we have
 \begin{multline}
-{\left| {1 - a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} + \frac{{b\Delta t}}{{2h}}\ii\sin \theta  + \frac{{c\Delta t}}{2} + \frac{{\Delta t\eta_h (\theta )}}{2}} \right|^2} = \\{\left| {1 - a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} + \frac{{c\Delta t}}{2} + \frac{{\Delta t\eta_h (\theta )}}{2}} \right|^2} + {\left| {\frac{{b\Delta t}}{{2h}}\sin \theta } \right|^2}\end{multline}
+{\left| {1 - a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} + \frac{{b\Delta t}}{{2h}}\ii\sin \theta  + \frac{{c\Delta t}}{2} + \frac{{\Delta t\eta_h (\theta )}}{2}} \right|^2} = \\
+{\left| {1 - a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} + \frac{{c\Delta t}}{2} + \frac{{\Delta t\eta_h (\theta )}}{2}} \right|^2} + {\left| {\frac{{b\Delta t}}{{2h}}\sin \theta } \right|^2}
+\end{multline}
 \begin{multline}
-\left| {1 + a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} - \frac{{b\Delta t}}{{2h}}\ii\sin \theta  - \frac{{c\Delta t}}{2} - \frac{{\Delta t\eta_h (\theta )}}{2}} \right| = \\{\left| {1 + a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} - \frac{{c\Delta t}}{2} - \frac{{\Delta t\eta_h (\theta )}}{2}} \right|^2} + {\left| {\frac{{b\Delta t}}{{2h}}\sin \theta } \right|^2}
+\left| {1 + a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} - \frac{{b\Delta t}}{{2h}}\ii\sin \theta  - \frac{{c\Delta t}}{2} - \frac{{\Delta t\eta_h (\theta )}}{2}} \right| = \\
+{\left| {1 + a\frac{{\Delta t}}{{{h^2}}}{{\sin }^2}\frac{\theta }{2} - \frac{{c\Delta t}}{2} - \frac{{\Delta t\eta_h (\theta )}}{2}} \right|^2} + {\left| {\frac{{b\Delta t}}{{2h}}\sin \theta } \right|^2}
 \end{multline}
 
 Since we have $a\geq 0$, $c\leq 0$, $\eta_h(\theta)\leq  0$, we always have
@@ -457,119 +497,7 @@ Therefore, the model of the ratio in \cref{equ:von} is always no greater than 1.
 \hrule
 
 
-The analytical solution to the model problem \cref{equ:ut} can be found using the Fourier transform when the coefficients are constant. For simplicity, we consider the case where the jump distribution is the Gaussian distribution, i.e. 
-\begin{equation}
-	\nu(y) = d\exp(-\varepsilon^2 y^2)
-\end{equation}
-Then the corresponding characteristic function of the L\'evy measure is 
-\begin{equation}
-	\eta(\xi) = -a\xi^2 + b\ii \xi + c + \int_\RR (e^{\ii \xi y}-1)\nu(y)dy
-\end{equation}
 
-The last term can be computed analytically,
-\begin{align}
-	\int_{\RR} {({e^{\ii\xi y}} - 1)} \nu (y)dy =& d\int_{\RR} {{e^{\ii\xi y}}\nu (y)} dy - d\frac{{\sqrt \pi  }}{\varepsilon }\\
-	 =&\frac{{ d\sqrt \pi  }}{\varepsilon }\left( {{e^{ - \frac{{{\xi ^2}}}{{4{\varepsilon ^2}}}}} - 1} \right)
-\end{align}
-
-Therefore, from 
-\begin{equation}
-	\hat u_t(\xi, t) = \eta(\xi) \hat u(\xi, 0)
-\end{equation}
-we obtain
-\begin{equation}
-	\hat u(\xi, t) = \exp(\eta(\xi)t)\hat u(\xi, 0)
-\end{equation}
-
-The values of $u(x,t)$ at time $t=T$ can be evaluated through inverse Fourier transform
-\begin{equation}
-	u(x_i, T) = \frac{1}{\sqrt{2\pi}}\int_\RR \hat u(\xi, T) e^{\ii \xi x_i} d\xi  = \frac{1}{\sqrt{2\pi}}\int_\RR  \exp(\eta(\xi)t)\hat u(\xi, 0) e^{\ii \xi x_i} d\xi 
-\end{equation}
-which can be evaluated using FFT for uniform grids $x_i$. 
-
-\lib{Applications}
-
-In this section, we list several possible applications of the numerical scheme and fast algorithms. These applications are taken from literature which can be formulated as an integro-differential equation.
-
-\subsection{Option Pricing}
-
-Let $S_t$ be the price of a financial asset which is modelled as a stochastic process under a martingale equivalence measure $\mathbb{Q}'$ and on a filtered probability space $(\Omega, \mathcal{F}, \mathcal{F}_t, \mathbb{Q})$.
-
-One of the popular models is the exponential L\'evy model which assumes
-\begin{equation}
-	S_t = S_0 e^{rt+X_t}
-\end{equation}
-where $X_t$ is a L\'evy process. Assume $r$ is the interest rate. For a European call or put, the terminal payoff $H_T$ at time $T$ is associated with the underlying asset price $S_T$
-\begin{equation}
-	H_T = H(S_T)
-\end{equation}
- The value of the option is defined as a discounted conditional expection of $H_T$ under the risk-adjusted martingale measure
-\begin{equation}
-	C_t = \mathbb{E}[e^{-r(T-t)}H(S_T)|\mathcal{F}_t] = \mathbb{E}[e^{-r(T-t)}H(S_T)|S_t=S]
-\end{equation}
-
-By introducing $\tau = T-t$, $x=\log\left( \frac{S}{S_0} \right)$, and define
-\begin{equation}
-	u(x,\tau) = \mathbb{E}[h(x+Y_\tau)]\quad h(x) = H(S_0 e^x)
-\end{equation}
- for sufficiently smooth $u$, by applying the Ito's formula for L\'evy process we have the integro-differential equation
-\begin{equation}
-	\frac{\partial u}{\partial \tau} = \frac{\sigma^2}{2}u_{xx} - (\sigma^2/2-r+\alpha) u_x + \int_\RR (u(x+y)-u(x)-u'(x)\mathbf{1}_{0<|y|<1}(y)y)\nu(y)dy
-\end{equation}
-with initial condition
-\begin{equation}
-	u(0,x) = h(x)
-\end{equation}
-
-
-\subsection{Quantum Mechanics}
-
-If the underlying stochastic process powering the random fluctuations is a Gaussian Brownian motion, we obtain the non relativistic Schr\"odinger's equation
-\begin{equation}
-	\ii \hbar \partial_t \psi(x,t) = -\frac{\hbar^2}{2m}\partial^2_{x} \psi(x,t)
-\end{equation}
-
-In recent years, there are a growing interest in non Gaussian stochastic process, and particularly the L\'evy process. One of the popular models is the fractional quantum mechanics, where the stable processes are used as the underlying stochastic process. The popularity of the stable process is justified by the properties of scaling and self-similarity displayed by the process. For any distribution with power-law decay $\frac{1}{|x|^{1+\alpha}}$, $0<\alpha<1$ the generalized central limit theorem guarantee that their sum scaled by $\frac{1}{n^{1/\alpha}}$ converge to the $\alpha$-stable distribution. If the variance are finite, i.e., $\alpha\geq 2$, then the central limit theorem holds, where  their sum scaled by $\frac{1}{n^{1/2}}$, properly centered, and identically distributed, converge to the Gaussian distribution.  This leads to the fractional Schr\"odinger equation
-\begin{equation}
-	\ii \hbar \partial_t \psi(x,t) = D_\alpha (-\hbar^2 \Delta)^{\alpha/2}\psi(x,t)
-\end{equation}
-where $(-\hbar^2 \Delta)^{\alpha/2}$ is the fractional Laplacian which can be defined through
-\begin{equation}
-	(-\hbar^2 \Delta)^{\alpha/2}\psi(x,t) = \frac{1}{(2\pi \hbar)^3}\int |\xi|^\alpha \hat \psi(\xi,t) \exp(\ii (\xi,x)/\hbar)d\xi
-\end{equation}
-
-\url{https://pdfs.semanticscholar.org/1dc0/9fedfa72c9f051da4642ff753d2bfe9f7a5f.pdf?_ga=2.231665951.1050874845.1539891109-5919569.1537093630}
-
-More generally, other L\'evy measure can be used to develop the quantum mechanics. The more general Schr\"odinger equation reads
-\begin{equation}
-	\ii \hbar\partial_t \psi(x,t) = -\frac{\hbar^2}{2m}\partial_x^2 \psi(x,t) - \hbar  \int_\RR [\psi(x+y,t)-\psi(x,t)]\nu(y)dy
-\end{equation}
-
-\url{https://arxiv.org/pdf/0805.0503.pdf}
-
-Some examples of the L\'evy-Schr\"odinger equations are
-\begin{itemize}
-	\item Relativistic.
-	\begin{equation}
-		\ii \hbar\partial_t \psi(x,t) = \sqrt{m^2c^4-c^2\hbar^2\partial_x^2} \psi(x,t)
-	\end{equation}
-	\item Variance-Gamma laws
-	\begin{equation}
-		\ii \hbar\partial_t \psi(x,t) = -\frac{\lambda\hbar}{\tau}\int_\RR\frac{\psi(x+y,t)-\psi(x,t)}{|y|}e^{-|y|/\hbar}dy
-	\end{equation}
-
-\end{itemize}
-
-\subsection{Turbulence Flow}
-
-\url{https://arxiv.org/pdf/1803.05286.pdf}
-
-It is known that turbulence flow exhibits anomalous diffusion, i.e., the diffusion occurs over distance $\xi$ may scale more than one half, $\xi\sim\mathcal{O}(t^{1/2})$. There are many efforts to model turbulence and capture these anomalies. One of the recent research is the the modeling of turbulence flow via the fractional Laplacian. 
-
-If we assume that the equilibrium probability distribution of particle speeds to be L\'evy $\alpha$-stable distributions instead of the Maxwell-Boltzmann distribution, we will arrive at the Navier-Stokes equation with the fractional Laplacian operator as a means to represent the mean friction force arising in a turbulence flow
-\begin{equation}
-	\rho\frac{D\bar u}{Dt} = -\nabla p + \mu_\alpha \nabla^2 \bar u + \rho C_\alpha \int_{\RR^3} \frac{\bar u(x',t)-\bar u(x,t)}{|x-x'|^{\alpha+3}} dx'
-\end{equation}
 
 
 
@@ -703,8 +631,184 @@ In practice, we want to compute $I(x)$ for $x\in [-L,L]$, according to \cref{tab
 
 Although we have used a different formula for the evaluation of the integral, we should soon realize that in the far-away off-diagonal parts, the entries are still $\nu_j h$~(except on the boundary), which the $\mathcal{H}$ matrix construction routine can still work. 
 
+\lib{Applications}
+
+In this section, we list several possible applications of the numerical scheme and fast algorithms. These applications are taken from literature which can be formulated as an integro-differential equation.
+
+\subsection{Option Pricing}
+
+Let $S_t$ be the price of a financial asset which is modelled as a stochastic process under a martingale equivalence measure $\mathbb{Q}'$ and on a filtered probability space $(\Omega, \mathcal{F}, \mathcal{F}_t, \mathbb{Q})$.
+
+One of the popular models is the exponential L\'evy model which assumes
+\begin{equation}
+	S_t = S_0 e^{rt+X_t}
+\end{equation}
+where $X_t$ is a L\'evy process. Assume $r$ is the interest rate. For a European call or put, the terminal payoff $H_T$ at time $T$ is associated with the underlying asset price $S_T$
+\begin{equation}
+	H_T = H(S_T)
+\end{equation}
+ The value of the option is defined as a discounted conditional expection of $H_T$ under the risk-adjusted martingale measure
+\begin{equation}
+	C_t = \mathbb{E}[e^{-r(T-t)}H(S_T)|\mathcal{F}_t] = \mathbb{E}[e^{-r(T-t)}H(S_T)|S_t=S]
+\end{equation}
+
+By introducing $\tau = T-t$, $x=\log\left( \frac{S}{S_0} \right)$, and define
+\begin{equation}
+	u(x,\tau) = \mathbb{E}[h(x+Y_\tau)]\quad h(x) = H(S_0 e^x)
+\end{equation}
+ for sufficiently smooth $u$, by applying the Ito's formula for L\'evy process we have the integro-differential equation
+\begin{equation}
+	\frac{\partial u}{\partial \tau} = \frac{\sigma^2}{2}u_{xx} - (\sigma^2/2-r+\alpha) u_x + \int_\RR (u(x+y)-u(x)-u'(x)\mathbf{1}_{0<|y|<1}(y)y)\nu(y)dy
+\end{equation}
+with initial condition
+\begin{equation}
+	u(0,x) = h(x)
+\end{equation}
+
+
+\subsection{Quantum Mechanics}
+
+If the underlying stochastic process powering the random fluctuations is a Gaussian Brownian motion, we obtain the non relativistic Schr\"odinger's equation
+\begin{equation}
+	\ii \hbar \partial_t \psi(x,t) = -\frac{\hbar^2}{2m}\partial^2_{x} \psi(x,t)
+\end{equation}
+
+In recent years, there are a growing interest in non Gaussian stochastic process, and particularly the L\'evy process. One of the popular models is the fractional quantum mechanics, where the stable processes are used as the underlying stochastic process. The popularity of the stable process is justified by the properties of scaling and self-similarity displayed by the process. For any distribution with power-law decay $\frac{1}{|x|^{1+\alpha}}$, $0<\alpha<1$ the generalized central limit theorem guarantee that their sum scaled by $\frac{1}{n^{1/\alpha}}$ converge to the $\alpha$-stable distribution. If the variance are finite, i.e., $\alpha\geq 2$, then the central limit theorem holds, where  their sum scaled by $\frac{1}{n^{1/2}}$, properly centered, and identically distributed, converge to the Gaussian distribution.  This leads to the fractional Schr\"odinger equation
+\begin{equation}
+	\ii \hbar \partial_t \psi(x,t) = D_\alpha (-\hbar^2 \Delta)^{\alpha/2}\psi(x,t)
+\end{equation}
+where $(-\hbar^2 \Delta)^{\alpha/2}$ is the fractional Laplacian which can be defined through
+\begin{equation}
+	(-\hbar^2 \Delta)^{\alpha/2}\psi(x,t) = \frac{1}{(2\pi \hbar)^3}\int |\xi|^\alpha \hat \psi(\xi,t) \exp(\ii (\xi,x)/\hbar)d\xi
+\end{equation}
+
+\url{https://pdfs.semanticscholar.org/1dc0/9fedfa72c9f051da4642ff753d2bfe9f7a5f.pdf?_ga=2.231665951.1050874845.1539891109-5919569.1537093630}
+
+More generally, other L\'evy measure can be used to develop the quantum mechanics. The more general Schr\"odinger equation reads
+\begin{equation}
+	\ii \hbar\partial_t \psi(x,t) = -\frac{\hbar^2}{2m}\partial_x^2 \psi(x,t) - \hbar  \int_\RR [\psi(x+y,t)-\psi(x,t)]\nu(y)dy
+\end{equation}
+
+\url{https://arxiv.org/pdf/0805.0503.pdf}
+
+Some examples of the L\'evy-Schr\"odinger equations are
+\begin{itemize}
+	\item Relativistic.
+	\begin{equation}
+		\ii \hbar\partial_t \psi(x,t) = \sqrt{m^2c^4-c^2\hbar^2\partial_x^2} \psi(x,t)
+	\end{equation}
+	\item Variance-Gamma laws
+	\begin{equation}
+		\ii \hbar\partial_t \psi(x,t) = -\frac{\lambda\hbar}{\tau}\int_\RR\frac{\psi(x+y,t)-\psi(x,t)}{|y|}e^{-|y|/\hbar}dy
+	\end{equation}
+
+\end{itemize}
+
+\subsection{Turbulence Flow}
+
+\url{https://arxiv.org/pdf/1803.05286.pdf}
+
+It is known that turbulence flow exhibits anomalous diffusion, i.e., the diffusion occurs over distance $\xi$ may scale more than one half, $\xi\sim\mathcal{O}(t^{1/2})$. There are many efforts to model turbulence and capture these anomalies. One of the recent research is the the modeling of turbulence flow via the fractional Laplacian. 
+
+If we assume that the equilibrium probability distribution of particle speeds to be L\'evy $\alpha$-stable distributions instead of the Maxwell-Boltzmann distribution, we will arrive at the Navier-Stokes equation with the fractional Laplacian operator as a means to represent the mean friction force arising in a turbulence flow
+\begin{equation}
+	\rho\frac{D\bar u}{Dt} = -\nabla p + \mu_\alpha \nabla^2 \bar u + \rho C_\alpha \int_{\RR^3} \frac{\bar u(x',t)-\bar u(x,t)}{|x-x'|^{\alpha+3}} dx'
+\end{equation}
+
+
 
 \lib{Numerical Examples}
+
+\subsection{}
+
+In this section, we show the efficiency of the arithmetic operations using the $\mathcal{H}$-matrix. In the experiment, the minimum block size is either 64 or 32. The matrix sizes tested are $2^5, 2^6, \ldots, 2^17$. The maximum block size for $2^n\times 2^n$ matrices is $2^{n-3}\times 2^{n-3}$. The rank for off-diagonal approximation is 10, which is quite accurate for the Merton kernel we considered. The author observed that for $2^17\times 2^17$ matrices, the dense LU will throw \texttt{OutOfMemory} error. The codes are implemented using \texttt{julia}. 
+
+
+
+We have already shown that the storage and construction complexity is $\mathcal{O}(N)$ in \cref{fig:storage,fig:construction}. In \cref{fig:lu} we also show that the LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.Note the $\mathcal{H}$-LU decomposition is carried out using high accuracy and can serve as a direct solver for linear systems. 
+
+\begin{figure}[htpb]
+\centering
+\scalebox{0.6}{\input{figures/lu.pgf}}
+\caption{LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.}
+\label{fig:lu}
+\end{figure}
+
+\Cref{fig:matvec} shows the complexity of the matrix vector multiplication for full matrices and $\mathcal{H}$-matrix. Since we have used large rank~($10$) compared to the smallest block size $32$ or $64$ to reassure high accuracy, the asymptotic complexity falls back to the dense matrix case. Even though the asymptotic complexity is $\mathcal{O}(N^2)$, the CPU time is considerably smaller than that of the dense matrix, where we see on average a 5x$\sim$8x speedup. 
+
+\begin{figure}[htpb]
+\centering
+\scalebox{0.6}{\input{figures/matvec.pgf}}
+\caption{LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.}
+\label{fig:matvec}
+\end{figure}
+
+\Cref{fig:compress} shows the compression ratio of the $\mathcal{H}$-matrix, which is defined as
+\begin{equation}
+\texttt{CompressRatio}=\frac{\#\texttt{Matrix Entries Stored}}{\#\texttt{Full Matrix Entries}}
+\end{equation}
+compress ratio gives us an estimate of the efficiency of the $\mathcal{H}$-matrix storage. Small compress ratios for large matrices is critical for large scale problems. 
+
+\begin{figure}[htpb]
+\centering
+\scalebox{0.6}{\input{figures/compress.pgf}}
+\caption{Compress ratio as $N$ becomes larger.}
+\label{fig:compress}
+\end{figure}
+
+To end this section, we take a look at the number of low rank blocks and number of dense subblocks for the $\mathcal{H}$-matrix. In \cref{fig:dense} we see a linear growing of the full subblocks and low rank subblocks. This is critical since optimal scaling requires that the dense and low rank subblocks do not grow like $\mathcal{O}(N^2)$. 
+
+\begin{figure}[htpb]
+\centering
+\scalebox{0.6}{\input{figures/dense.pgf}}
+\caption{Number of full subblocks and low rank subblocks as $N$ becomes larger. We see a linear growing of the full subblocks and low rank subblocks.}
+\label{fig:dense}
+\end{figure}
+
+\subsection{}
+
+In this section, we consider solving the model problem using $\mathcal{H}$-matrix and full matrix. We use a large rank $10$ for the kernel function and therefore the $\mathcal{H}$ matrix as well as its LU decomposition are very accurate. Thus, we do not need iterative solvers. Instead we can directly do triangular solve given the LU decomposition at each iteration. Another choice is to use the LU decomposed matrix as preconditioners, which we will not pursue here.  
+
+The analytical solution to the model problem \cref{equ:ut} can be found using the Fourier transform when the coefficients are constant. For simplicity, we consider the case where the jump distribution is the Gaussian distribution, i.e. 
+\begin{equation}
+	\nu(y) = d\exp(-\varepsilon^2 y^2)
+\end{equation}
+Then the corresponding characteristic function of the L\'evy measure is 
+\begin{equation}
+	\eta(\xi) = -a\xi^2 + b\ii \xi + c + \int_\RR (e^{\ii \xi y}-1)\nu(y)dy
+\end{equation}
+
+The last term can be computed analytically,
+\begin{align}
+	\int_{\RR} {({e^{\ii\xi y}} - 1)} \nu (y)dy =& d\int_{\RR} {{e^{\ii\xi y}}\nu (y)} dy - d\frac{{\sqrt \pi  }}{\varepsilon }\\
+	 =&\frac{{ d\sqrt \pi  }}{\varepsilon }\left( {{e^{ - \frac{{{\xi ^2}}}{{4{\varepsilon ^2}}}}} - 1} \right)
+\end{align}
+
+Therefore, from 
+\begin{equation}
+	\hat u_t(\xi, t) = \eta(\xi) \hat u(\xi, 0)
+\end{equation}
+we obtain
+\begin{equation}
+	\hat u(\xi, t) = \exp(\eta(\xi)t)\hat u(\xi, 0)
+\end{equation}
+
+The values of $u(x,t)$ at time $t=T$ can be evaluated through inverse Fourier transform
+\begin{equation}
+	u(x_i, T) = \frac{1}{\sqrt{2\pi}}\int_\RR \hat u(\xi, T) e^{\ii \xi x_i} d\xi  = \frac{1}{\sqrt{2\pi}}\int_\RR  \exp(\eta(\xi)t)\hat u(\xi, 0) e^{\ii \xi x_i} d\xi 
+\end{equation}
+which can be evaluated using FFT for uniform grids $x_i$. 
+
+\Cref{fig:s} shows the computational cost as well as the storage cost for both $\mathcal{H}$-matrix and the full matrix. We see that both in terms of time and storage complexity $\mathcal{H}$-matrix has advantage over full matrices.
+
+\begin{figure}[htpb]
+\centering
+\scalebox{0.3}{\input{figures/s1.pgf}}~
+\scalebox{0.3}{\input{figures/s2.pgf}}
+
+\caption{Time and storage complexity for $\mathcal{H}$-matrix and full matrix. Both in terms of time and storage complexity $\mathcal{H}$-matrix has advantage over full matrices.}
+\label{fig:s}
+\end{figure}
 
 \subsection{}
 

@@ -62,6 +62,7 @@ function info(H::Hmat)
     dmat::Int64 = 0
     rkmat::Int64 = 0
     level::Int64 = 0
+    compress_ratio::Float64 = 0
     function helper(H::Hmat, l::Int)
         # global dmat
         # global rkmat
@@ -69,9 +70,11 @@ function info(H::Hmat)
         if H.is_fullmatrix
             dmat += 1
             level = max(l, level)
+            compress_ratio += H.m*H.n
         elseif H.is_rkmatrix
             rkmat += 1
             level = max(l, level)
+            compress_ratio += size(H.A,1)*size(H.A,2) + size(H.B,1)*size(H.B, 2)
         else
             for i = 1:2
                 for j = 1:2
@@ -81,7 +84,7 @@ function info(H::Hmat)
         end
     end
     helper(H, 1)
-    return dmat, rkmat, level
+    return dmat, rkmat, level, compress_ratio/H.m/H.n
 end
 
 
@@ -548,4 +551,11 @@ function PyPlot.:matshow(H::Hmat)
     hmat_copy!(P, H)
     C = color_level(P)
     matshow(C)
+end
+
+function check_if_equal(H::Hmat, C::Array{Float64})
+    G = Hmat()
+    hmat_copy!(G, H)
+    to_fmat!(G)
+        println("Error = $(norm(C-G.C,2)/norm(C,2))")
 end

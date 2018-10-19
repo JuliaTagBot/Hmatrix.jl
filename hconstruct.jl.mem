@@ -1,0 +1,117 @@
+        - include("hmat.jl")
+        - 
+        - function admissible1(s1, e1, s2, e2)
+        0     if s1<=s2 && s2<e1 
+        -         return true
+        0     elseif s1>=s2 && s1<e2
+        -         return true
+        -     else
+        -         return false
+        -     end
+        - end
+        - 
+        - function construct1D(kerfun, N1, N2, Nleaf, Erank, Rrank, MaxBlock=64)
+       64     function helper(H::Hmat, s1, e1, s2, e2)
+        -         # println("$s1, $e1, $s2 ,$e2")
+        -         H.m = e1-s1+1
+        -         H.n = e2-s2+1
+    42560         if H.m > MaxBlock || H.n > MaxBlock
+        -             H.is_hmat = true
+   401200             H.children = Array{Hmat}([Hmat() Hmat()
+        -                                     Hmat() Hmat()])
+        -             m1 = s1 + Int(round((e1-s1)/2)) - 1
+        -             m2 = s2 + Int(round((e2-s2)/2)) - 1
+        0             helper(H.children[1,1], s1, m1, s2, m2)
+        0             helper(H.children[1,2], s1, m1, m2+1, e2)
+        0             helper(H.children[2,1], m1+1, e1, s2, m2)
+        0             helper(H.children[2,2], m1+1, e1, m2+1, e2)
+        0         elseif !admissible1(s1, e1, s2, e2)
+        -             J = zeros(H.m, H.n)
+508039424             for i = 1:H.m
+        0                 for j = 1:H.n
+        0                     J[i,j] = kerfun(s1-1+i, s2-1+j)
+        -                 end
+        -             end
+        0             U,S,V = svd(J)
+        0             k = rank_truncate(S,Erank)
+        -             # println("$k, $(H.m), $(H.n)")
+        0             if k < Rrank
+        -                 H.is_rkmatrix = true
+        -                 H.A = U[:,1:k]
+        0                 H.B = V[:,1:k] * diagm(0=>S[1:k])
+        0             elseif H.m > Nleaf && H.n > Nleaf
+        -                 H.is_hmat = true
+        0                 H.children = Array{Hmat}([Hmat() Hmat()
+        -                                         Hmat() Hmat()])
+        -                 m1 = s1 + Int(round((e1-s1)/2)) - 1
+        -                 m2 = s2 + Int(round((e2-s2)/2)) - 1
+        0                 helper(H.children[1,1], s1, m1, s2, m2)
+        0                 helper(H.children[1,2], s1, m1, m2+1, e2)
+        0                 helper(H.children[2,1], m1+1, e1, s2, m2)
+        0                 helper(H.children[2,2], m1+1, e1, m2+1, e2)
+        -             else
+        -                 H.is_fullmatrix = true
+        0                 H.C = J
+        -             end
+        -         else
+        0             if H.m > Nleaf && H.n > Nleaf
+        -                 H.is_hmat = true
+   528640                 H.children = Array{Hmat}([Hmat() Hmat()
+        -                                         Hmat() Hmat()])
+        -                 m1 = s1 + Int(round((e1-s1)/2)) - 1
+        -                 m2 = s2 + Int(round((e2-s2)/2)) - 1
+        0                 helper(H.children[1,1], s1, m1, s2, m2)
+        0                 helper(H.children[1,2], s1, m1, m2+1, e2)
+        0                 helper(H.children[2,1], m1+1, e1, s2, m2)
+        0                 helper(H.children[2,2], m1+1, e1, m2+1, e2)
+        -             else
+        -                 H.is_fullmatrix = true
+        -                 H.C = zeros(H.m, H.n)
+  4014080                 for i = 1:H.m
+        0                     for j = 1:H.n
+  7873536                         H.C[i,j] = kerfun(s1-1+i, s2-1+j)
+        -                     end
+        -                 end
+        -             end
+        -         end     
+        -     end
+        0     H = Hmat()
+        0     helper(H, N1, N2, N1, N2)
+        0     return H
+        - end
+        - 
+        - function test_kerfun(i, j)
+        0     if i==j
+        -         return 0
+        -     else
+        -         return 1/(abs(i-j))^2
+        -     end
+        - end
+        - 
+        - function test_hconstruct(N=8000)
+        -     n = Int(N/2)
+        -     Nleaf = 64
+        -     Erank = 1e-3
+        -     Rrank = 8
+        -     MaxBlock = 512
+        -     @time H = construct1D(test_kerfun, -n, n-1, Nleaf, Erank, Rrank, MaxBlock)
+        0     D = zeros(N, N)
+        0     for i = -n:n-1
+        0         for j = -n:n-1
+        0             D[i+n+1, j+n+1] = test_kerfun(i, j)
+        -         end
+        -     end
+     1088     matshow(H)
+       32     to_fmat!(H)
+        0     @time G = construct_hmat(H.C, Nleaf, Erank, Rrank, MaxBlock)
+        -     @printf("Error = %g", norm(H.C-D,2)/norm(D,2))
+        - end
+        - 
+        - function benchmark()
+        0     test_hconstruct(100)
+        -     Profile.clear_malloc_data()
+        0     Profile.init(delay=0.01)
+        -     Profile.clear()
+        0     test_hconstruct(8000)
+        - end
+        - 

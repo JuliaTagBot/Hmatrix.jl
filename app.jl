@@ -21,7 +21,11 @@ function profile(n=10, h=2/2^10)
     f, alpha, beta = Merton_Kernel(1, 10)
     function nf(x,y)
         if x==y
-            return -10
+            return -10/h+f(x,y)
+        elseif y-x==h
+            return f(x,y)
+        elseif x-y==h
+            return f(x,y)
         else
             return f(x,y)
         end
@@ -65,7 +69,7 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-4))
     f, alpha, beta = Merton_Kernel(1, 10)
     function nf(x,y)
         if x==y
-            return -10+f(x,y)
+            return -10/h+f(x,y)
         elseif y-x==h
             return f(x,y)
         elseif x-y==h

@@ -156,10 +156,28 @@ function rkmat_add!(a, b, scalar, method=1)
     end
 end
 
+function hmat_full_add!(a::Hmat, b::Array{Float64}, scalar)
+    if a.is_fullmatrix
+        a.C += b*scalar
+    elseif a.is_rkmatrix
+        # to_fmat!(a)
+        # a.C += scalar * b
+        C = a.A*a.B'+scalar*b
+        a.A, a.B = compress(C)
+    elseif a.is_hmat
+        m = a.children[1,1].m
+        hmat_full_add!(a.children[1,1], b[1:m,1:m],scalar)
+        hmat_full_add!(a.children[1,2], b[1:m,m+1:end],scalar)
+        hmat_full_add!(a.children[2,1], b[m+1:end,1:m],scalar)
+        hmat_full_add!(a.children[2,2], b[m+1:end,m+1:end],scalar)
+    else
+        error("Should not be here")
+    end
+end
 # Perform a = a + b
 function hmat_add!( a, b, scalar = 1.0)
-    if a.is_fullmatrix && b.is_fullmatrix
-        a.C += scalar * b.C
+    if b.is_fullmatrix
+        hmat_full_add!(a, b.C, scalar)
     elseif a.is_fullmatrix && b.is_rkmatrix
         a.C += scalar * b.A * b.B'
     elseif a.is_fullmatrix && b.is_hmat
@@ -167,20 +185,16 @@ function hmat_add!( a, b, scalar = 1.0)
         hmat_copy!(c, b)
         to_fmat!(c)
         a.C += c.C
-    elseif a.is_rkmatrix && b.is_fullmatrix
-        to_fmat!(a)
-        hmat_add!(a, b, scalar)
     elseif a.is_rkmatrix && b.is_rkmatrix
         rkmat_add!(a, b, scalar, 1)
     elseif a.is_rkmatrix && b.is_hmat
-        to_fmat!(a)
-        hmat_add!(a, b, scalar)
-    elseif a.is_hmat && b.is_fullmatrix
+        # this is never used
         to_fmat!(a)
         hmat_add!(a, b, scalar)
     elseif a.is_hmat && b.is_rkmatrix
-        to_fmat!(a)
-        hmat_add!(a, b, scalar)
+        # to_fmat!(a)
+        # hmat_add!(a, b, scalar)
+        hmat_full_add!(a, b.A*b.B', scalar)
     elseif a.is_hmat && b.is_hmat
         for i = 1:2
             for j = 1:2
@@ -193,29 +207,72 @@ end
 function Base.:+(a::Hmat, b::Hmat)
     c = Hmat()
     hmat_copy!(c, a)
-    # consistency(c)
     hmat_add!( c, b, 1.0)
     return c
 end
 
-function Base.:*(a::Hmat, b::Hmat)
-    H = Hmat(m=a.m, n = b.n)
-    if a.is_fullmatrix && b.is_fullmatrix
-        H.C = a.C * b.C
+function full_mat_mul(a::Array{Float64, 2}, b::Hmat)
+    H = Hmat(m=size(a,1), n = b.n)
+    
+    if b.is_hmat
+        m, n = b.children[1,1].m, b.children[1,1].n
+        p, q = b.m - m, b.n - n
+        H.is_hmat = true
+        H.children = Array{Hmat}([Hmat() Hmat()
+                                    Hmat() Hmat()])
+        H.children[1,1] = full_mat_mul(a[1:n, 1:m] , b.children[1,1]) + full_mat_mul(a[1:n, m+1:m+p] , b.children[1,2])
+        H.children[1,2] = full_mat_mul(a[1:n, 1:m] , b.children[2,1]) + full_mat_mul(a[1:n, m+1:m+p] , b.children[2,2])
+        H.children[2,1] = full_mat_mul(a[n+1:n+q, 1:m] , b.children[1,1]) + full_mat_mul(a[n+1:n+q, m+1:m+p] , b.children[1,2])
+        H.children[2,2] = full_mat_mul(a[n+1:n+q, 1:m] , b.children[1,2] ) + full_mat_mul(a[n+1:n+q, m+1:m+p] , b.children[2,2])
+    elseif b.is_fullmatrix
         H.is_fullmatrix = true
-    elseif a.is_fullmatrix && b.is_rkmatrix
-        H.C = (a.C * b.A) * b.B'
+        H.C = a * b.C
+    else
+        H.is_rkmatrix = true
+        H.A = a * b.A
+        H.B = b.B
+    end
+    return H
+end
+
+function mat_full_mul(a::Hmat, b::Array{Float64, 2})
+    H = Hmat(m=a.m, n = size(b,2))
+    
+    if a.is_hmat
+        m, n = a.children[1,1].m, a.children[1,1].n
+        p, q = a.m - m, a.n - n
+        H.is_hmat = true
+        H.children = Array{Hmat}([Hmat() Hmat()
+                                    Hmat() Hmat()])
+        b11 = b[1:n, 1:m]
+        b12 = b[1:n, m+1:m+p]
+        b21 = b[n+1:n+q, 1:m]
+        b22 = b[n+1:n+q, m+1:m+p]
+        a11 = a.children[1,1]
+        a12 = a.children[1,2]
+        a21 = a.children[2,1]
+        a22 = a.children[2,2]
+        H.children[1,1] = mat_full_mul(a11, b11) + mat_full_mul(a12, b21) 
+        H.children[1,2] = mat_full_mul(a11, b12) + mat_full_mul(a12, b22)
+        H.children[2,1] = mat_full_mul(a21, b11) + mat_full_mul(a22, b21)
+        H.children[2,2] = mat_full_mul(a21, b12) + mat_full_mul(a22, b22)
+    elseif a.is_fullmatrix
         H.is_fullmatrix = true
-    elseif a.is_fullmatrix && b.is_hmat
-        H.is_fullmatrix = true
-        c = Hmat()
-        hmat_copy!(c, b)
-        to_fmat!(c)
-        H.C = a*c
-    elseif a.is_rkmatrix && b.is_fullmatrix
+        H.C = a.C * b
+    else
         H.is_rkmatrix = true
         H.A = a.A
-        H.B = (a.B' * b.C)'
+        H.B = b' * a.B
+    end
+    return H
+end
+
+function Base.:*(a::Hmat, b::Hmat)
+    H = Hmat(m=a.m, n = b.n)
+    if a.is_fullmatrix
+        H = full_mat_mul(a.C, b)
+    elseif b.is_fullmatrix
+        H = mat_full_mul(a, b.C)
     elseif a.is_rkmatrix && b.is_rkmatrix
         H.is_rkmatrix = true
         H.A = a.A
@@ -227,12 +284,7 @@ function Base.:*(a::Hmat, b::Hmat)
         to_fmat!(c)
         H.A = a.A
         H.B =  c.C' * a.B
-    elseif a.is_hmat && b.is_fullmatrix
-        H.is_fullmatrix = true
-        c = Hmat()
-        hmat_copy!(c, a)
-        to_fmat!(c)
-        H.C = c.C*b.C
+    
     elseif a.is_hmat && b.is_rkmatrix
         H.is_rkmatrix = true
         c = Hmat()
@@ -253,20 +305,28 @@ function Base.:*(a::Hmat, b::Hmat)
     return H
 end
 
+# function Base.:*(a::Hmat, v::AbstractArray{Float64})
+#     if a.is_fullmatrix
+#         return a.C*v
+#     elseif a.is_rkmatrix
+#         return a.A * (a.B'*v)
+#     else
+#         u = zeros(length(v))
+#         m, n = a.children[1,1].m, a.children[1,1].n
+#         @views begin
+#             u[1:m] = a.children[1,1]*v[1:n] + a.children[1,2]*v[n+1:end]
+#             u[m+1:end] = a.children[2,1]*v[1:n] + a.children[2,2]*v[n+1:end]
+#         end
+#         return u
+#     end
+# end
+
 function Base.:*(a::Hmat, v::AbstractArray{Float64})
-    if a.is_fullmatrix
-        return a.C*v
-    elseif a.is_rkmatrix
-        return a.A * (a.B'*v)
-    else
-        u = zeros(length(v))
-        m, n = a.children[1,1].m, a.children[1,1].n
-        @views begin
-            u[1:m] = a.children[1,1]*v[1:n] + a.children[1,2]*v[n+1:end]
-            u[m+1:end] = a.children[2,1]*v[1:n] + a.children[2,2]*v[n+1:end]
-        end
-        return u
+    r = zeros(size(v))
+    for i = 1:size(v,2)
+        @views hmat_matvec!(r[:,i], a, v[:,i], 1.0)
     end
+    return r
 end
 
 # r = r + s*a*v
@@ -424,6 +484,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 b.C = b.C[a.P,:]
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
+
         elseif a.is_hmat && b.is_hmat
             hmat_trisolve!(a.children[1,1], b.children[1,1], islower, unitdiag, permutation)
             hmat_trisolve!(a.children[1,1], b.children[1,2], islower, unitdiag, permutation)

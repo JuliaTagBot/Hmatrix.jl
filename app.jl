@@ -60,13 +60,13 @@ function profile(n=10, h=2/2^10)
 
 end
 
-function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-4))
+function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3))
     println("=======================================================")
     println("======================= n = $n ========================")
     
     x = collect(1:2^n)*h
     y = collect(1:2^n)*h
-    f, alpha, beta = Merton_Kernel(1, 10)
+    f, alpha, beta = Merton_Kernel(1, 3)
     function nf(x,y)
         if x==y
             return -10/h+f(x,y)
@@ -81,21 +81,31 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-4))
     t1 = @timed hA = construct1D_low_rank(nf, alpha, beta, h, 1, 2^n, minBlock, maxBlock)
     y = rand(2^n)
 
+    t4 = @timed begin
+        for i = 1:10
+            w = hA*y;
+        end
+    end
+
     info1 = info(hA)
+    # matshow(hA)
     t3 = @timed lu!(hA)
     info2 = info(hA)
+    # matshow(hA)
 
     w = hA\y;
-    t4 = @timed begin
+    t5 = @timed begin
         for i = 1:10
             w = hA\y;
         end
     end
 
     @printf("Matrix       : full=%d, rk=%d, level=%d, compress=%0.6f, storage=%g\n", info1[1], info1[2], info1[3],info1[4],(round(info1[4]*hA.m*hA.n)))
+    @printf("LU           : full=%d, rk=%d, level=%d, compress=%0.6f, storage=%g\n", info2[1], info2[2], info2[3],info2[4],(round(info2[4]*hA.m*hA.n)))
     @printf("Construction : (Hmat)%0.6f sec \n", t1[2])
     @printf("LU           : (Hmat)%0.6f sec \n", t3[2])
     @printf("MatVec       : (Hmat)%0.6f sec \n", t4[2]/10)
+    @printf("Solve        : (Hmat)%0.6f sec \n", t5[2]/10)
 
 end
 

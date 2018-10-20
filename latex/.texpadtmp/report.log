@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=latex 2017.5.23)  19 OCT 2018 11:20
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=latex 2017.5.23)  20 OCT 2018 11:31
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -556,7 +556,16 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 LaTeX Font Info:    Try loading font information for U+msb on input line 47.
  (/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) [1
+)
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 47.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 47.
+
+[1
 
 ]
 LaTeX Font Info:    Try loading font information for OMS+cmr on input line 104.
@@ -570,62 +579,72 @@ Overfull \hbox (12.25334pt too wide) in paragraph at lines 216--217
 []\OT1/cmr/m/n/10 In the case $\OML/cmm/m/it/10 ^^W \OMS/cmsy/m/n/10 ^^Q \OT1/cmr/m/n/10 0$, we ob-tain the Gaus-sian pro-cess. In the case $[][] [] \OML/cmm/m/it/10 dy$
  []
 
-
+[4]
 Overfull \hbox (57.31786pt too wide) in paragraph at lines 248--249
 []\OT1/cmr/m/n/10 To see this, con-sider the 1D case and with-out the ad-just-ment term $\OMS/cmsy/m/n/10 ^^@\OML/cmm/m/it/10 y[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 @[]f\OT1/cmr/m/n/10 )(\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OT1/cmr/bx/n/10 1[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )$.
  []
 
-[4]
-Overfull \hbox (105.7462pt too wide) in paragraph at lines 277--278
+
+Overfull \hbox (105.7462pt too wide) in paragraph at lines 276--277
 [][][][][] 
  []
 
 [5] [6]
-Overfull \hbox (0.30652pt too wide) detected at line 373
+Overfull \hbox (0.30652pt too wide) detected at line 372
 []\OMS/cmsy/m/n/10 j[] ^^@ [] []\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x \OMS/cmsy/m/n/10 ^^@ []\OT1/cmr/m/n/10 )[](\OML/cmm/m/it/10 y \OMS/cmsy/m/n/10 ^^@ []\OT1/cmr/m/n/10 )\OMS/cmsy/m/n/10 j ^^T [][] \OT1/cmr/m/n/10 = [][]
  []
 
-[7] [8] [9] [10]
-Overfull \hbox (379.24382pt too wide) in paragraph at lines 565--566
-[][][][][] 
- []
-
-[11] [12]
-Overfull \hbox (25.95688pt too wide) detected at line 667
+(./figures/storage.pgf)
+File: figures/construction.eps Graphic file (type eps)
+ <figures/construction.eps> [7] [8] [9] [10] [11]
+Overfull \hbox (25.95688pt too wide) detected at line 571
 []\OML/cmm/m/it/10 I\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) = [][](\OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x \OT1/cmr/m/n/10 + \OML/cmm/m/it/10 y\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y \OMS/cmsy/m/n/10 ^^@ []\OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 dy \OT1/cmr/m/n/10 + []\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) [][] \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]dy
  []
 
-[13]
-Overfull \hbox (19.08025pt too wide) detected at line 704
+
+Overfull \hbox (19.08025pt too wide) detected at line 608
 [][][]
  []
 
+[12]
+
+LaTeX Warning: Reference `tab:1d' on page 1 undefined on input line 622.
+
 File: figures/fig31.eps Graphic file (type eps)
-<figures/fig31.eps> [14]
+<figures/fig31.eps> [13] [14]
+Overfull \hbox (379.24382pt too wide) in paragraph at lines 685--686
+[][][][][] 
+ []
+
+[15] (./figures/lu.pgf) (./figures/matvec.pgf) [16] (./figures/compress.pgf) (./figures/dense.pgf) [17] [18] (./figures/s1.pgf) (./figures/s2.pgf)
 File: figures/fig5.eps Graphic file (type eps)
- <figures/fig5.eps> [15]
+ <figures/fig5.eps> [19]
 File: figures/fig6.eps Graphic file (type eps)
  <figures/fig6.eps>
 File: figures/fig7.eps Graphic file (type eps)
- <figures/fig7.eps> [16]
+ <figures/fig7.eps> [20]
 File: figures/fig8.eps Graphic file (type eps)
- <figures/fig8.eps> [17] [18]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 794.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 794.
+ <figures/fig8.eps> [21] [22]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 874.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 874.
  (/Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 794.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 794.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 874.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 874.
 Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: <no file>.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 794.
+(rerunfilecheck)             Checksum: 62A9259835671B94B8607078321EBA78;846.
+
+
+LaTeX Warning: There were undefined references.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 874.
  ) 
 Here is how much of TeX's memory you used:
- 27159 strings out of 492996
- 661555 string characters out of 6132730
- 897063 words of memory out of 5000000
- 30285 multiletter control sequences out of 15000+600000
- 11732 words of font info for 46 fonts, out of 8000000 for 9000
+ 27222 strings out of 492996
+ 662875 string characters out of 6132730
+ 908767 words of memory out of 5000000
+ 30329 multiletter control sequences out of 15000+600000
+ 10185 words of font info for 40 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  62i,16n,96p,905b,609s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on /Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.dvi (18 pages, 108420 bytes).
+Output written on /Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.dvi (22 pages, 329504 bytes).

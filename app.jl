@@ -18,7 +18,7 @@ function profile(n=10, h=2/2^10)
     
     x = collect(1:2^n)*h
     y = collect(1:2^n)*h
-    f, alpha, beta = Merton_Kernel(1, 10)
+    f, alpha, beta = Merton_Kernel(1, 5)
     function nf(x,y)
         if x==y
             return -10/h+f(x,y)
@@ -55,7 +55,7 @@ function profile(n=10, h=2/2^10)
     @printf("Matrix       : full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
     @printf("Construction : (Hmat)%0.6f sec (Full)%0.6f sec\n", t1[2], t2[2])
     @printf("LU           : (Hmat)%0.6f sec (Full)%0.6f sec\n", t3[2], t6[2])
-    @printf("MatVec       : (Hmat)%0.6f sec (Full)%0.6f sec\n", t4[2]/10, t5[2])
+    @printf("Solve        : (Hmat)%0.6f sec (Full)%0.6f sec\n", t4[2]/10, t5[2])
     @printf("Error        : %g\n", err)
 
 end
@@ -66,7 +66,7 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3))
     
     x = collect(1:2^n)*h
     y = collect(1:2^n)*h
-    f, alpha, beta = Merton_Kernel(1, 3)
+    f, alpha, beta = Merton_Kernel(1, 5)
     function nf(x,y)
         if x==y
             return -10/h+f(x,y)
@@ -92,6 +92,7 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3))
     t3 = @timed lu!(hA)
     info2 = info(hA)
     # matshow(hA)
+    # hB = Hmat(); hmat_copy!(hB, hA); @timev lu!(hB)
 
     w = hA\y;
     t5 = @timed begin
@@ -106,6 +107,8 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3))
     @printf("LU           : (Hmat)%0.6f sec \n", t3[2])
     @printf("MatVec       : (Hmat)%0.6f sec \n", t4[2]/10)
     @printf("Solve        : (Hmat)%0.6f sec \n", t5[2]/10)
+
+    # println(tos)
 
 end
 

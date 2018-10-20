@@ -5,6 +5,7 @@ using Printf
 using Statistics
 using Profile
 using LowRankApprox
+using TimerOutputs
 
 if !@isdefined Hmat
     @with_kw mutable struct Hmat
@@ -20,6 +21,9 @@ if !@isdefined Hmat
         children::Array{Hmat} = Array{Hmat}([])
     end
 end
+
+const tos = TimerOutput()
+
 
 # utilities
 function consistency(H, L=@__LINE__)
@@ -119,7 +123,7 @@ function rank_truncate(S, eps=1e-6)
 end
 
 function compress(C, eps=1e-6, N = nothing)
-    U,S,V = svd(C)
+    U,S,V = psvd(C)
     if N==nothing
         N = length(S)
     end
@@ -156,20 +160,20 @@ function rkmat_add!(a, b, scalar, method=1)
     end
 end
 
-function hmat_full_add!(a::Hmat, b::Array{Float64}, scalar)
+function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar)
     if a.is_fullmatrix
         a.C += b*scalar
     elseif a.is_rkmatrix
-        # to_fmat!(a)
-        # a.C += scalar * b
         C = a.A*a.B'+scalar*b
         a.A, a.B = compress(C)
     elseif a.is_hmat
         m = a.children[1,1].m
-        hmat_full_add!(a.children[1,1], b[1:m,1:m],scalar)
-        hmat_full_add!(a.children[1,2], b[1:m,m+1:end],scalar)
-        hmat_full_add!(a.children[2,1], b[m+1:end,1:m],scalar)
-        hmat_full_add!(a.children[2,2], b[m+1:end,m+1:end],scalar)
+        @views begin
+            hmat_full_add!(a.children[1,1], b[1:m,1:m],scalar)
+            hmat_full_add!(a.children[1,2], b[1:m,m+1:end],scalar)
+            hmat_full_add!(a.children[2,1], b[m+1:end,1:m],scalar)
+            hmat_full_add!(a.children[2,2], b[m+1:end,m+1:end],scalar)
+        end
     else
         error("Should not be here")
     end
@@ -188,12 +192,10 @@ function hmat_add!( a, b, scalar = 1.0)
     elseif a.is_rkmatrix && b.is_rkmatrix
         rkmat_add!(a, b, scalar, 1)
     elseif a.is_rkmatrix && b.is_hmat
-        # this is never used
+        # println("Used")
         to_fmat!(a)
         hmat_add!(a, b, scalar)
     elseif a.is_hmat && b.is_rkmatrix
-        # to_fmat!(a)
-        # hmat_add!(a, b, scalar)
         hmat_full_add!(a, b.A*b.B', scalar)
     elseif a.is_hmat && b.is_hmat
         for i = 1:2
@@ -304,22 +306,6 @@ function Base.:*(a::Hmat, b::Hmat)
     end
     return H
 end
-
-# function Base.:*(a::Hmat, v::AbstractArray{Float64})
-#     if a.is_fullmatrix
-#         return a.C*v
-#     elseif a.is_rkmatrix
-#         return a.A * (a.B'*v)
-#     else
-#         u = zeros(length(v))
-#         m, n = a.children[1,1].m, a.children[1,1].n
-#         @views begin
-#             u[1:m] = a.children[1,1]*v[1:n] + a.children[1,2]*v[n+1:end]
-#             u[m+1:end] = a.children[2,1]*v[1:n] + a.children[2,2]*v[n+1:end]
-#         end
-#         return u
-#     end
-# end
 
 function Base.:*(a::Hmat, v::AbstractArray{Float64})
     r = zeros(size(v))
@@ -478,18 +464,10 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.A)
         elseif a.is_fullmatrix && b.is_hmat
-            b.is_fullmatrix = true
-            to_fmat!(b)
-            if permutation && length(a.P)>0
-                b.C = b.C[a.P,:]
-            end
-            LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
-
+            error("This is never used")
         elseif a.is_hmat && b.is_hmat
             hmat_trisolve!(a.children[1,1], b.children[1,1], islower, unitdiag, permutation)
             hmat_trisolve!(a.children[1,1], b.children[1,2], islower, unitdiag, permutation)
-            # hmat_matvec!(b.children[2,1], a.children[2,1], b.children[1,1], -1.0)
-            # hmat_matvec!(b.children[2,2], a.children[2,1], b.children[1,2], -1.0)
             hmat_add!(b.children[2,1], a.children[2,1]*b.children[1,1], -1.0)
             hmat_add!(b.children[2,2], a.children[2,1]*b.children[1,2], -1.0)
             hmat_trisolve!(a.children[2,2], b.children[2,1], islower, unitdiag, permutation)

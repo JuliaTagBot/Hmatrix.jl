@@ -3,14 +3,14 @@ include("hmat.jl")
 include("hconstruct.jl")
 
 
-function theta_scheme1D(a, b, c, u0, NT, T, n, L)
+function theta_scheme1D(a=1, b=1, c=-1.0, u0=x->exp(-50x^2), NT=100, T=1, n=5, L=1, minBlock=64, offset=2;printout=true)
     @assert a>=0
     @assert c<=0
     N = 2^n
     h = 2L/(N-1)
     dt = T/NT
     xi = -10*L:h:10*L
-    f, alpha, beta = Merton_Kernel(1.0, 10)
+    f, alpha, beta = Merton_Kernel(1.0, 5)
     nu = x->f(0,x)
     lambda = sum(nu.(xi))*h
     
@@ -50,8 +50,8 @@ function theta_scheme1D(a, b, c, u0, NT, T, n, L)
         alpha2[i] = x->dt/2*h*alpha[i](x)
     end
 
-    t1 = @timed hA = construct1D_low_rank(Afunc_left, alpha1, beta1, h, -2^(n-1), 2^(n-1)-1, 32, 2^(n-3))
-    t2 = @timed hB = construct1D_low_rank(Afunc_right, alpha2, beta2, h, -2^(n-1), 2^(n-1)-1, 32, 2^(n-3))
+    t1 = @timed hA = construct1D_low_rank(Afunc_left, alpha1, beta1, h, -2^(n-1), 2^(n-1)-1, minBlock, 2^(n-offset))
+    t2 = @timed hB = construct1D_low_rank(Afunc_right, alpha2, beta2, h, -2^(n-1), 2^(n-1)-1, minBlock, 2^(n-offset))
 
     # A = full_mat(Afunc_left, (-2^(n-1): 2^(n-1)-1)*h, (-2^(n-1): 2^(n-1)-1)*h)
     # B = full_mat(Afunc_right, (-2^(n-1): 2^(n-1)-1)*h, (-2^(n-1): 2^(n-1)-1)*h)
@@ -73,19 +73,20 @@ function theta_scheme1D(a, b, c, u0, NT, T, n, L)
             U[:,i+1] = hA\(hB*U[:,i])
         end
     end
-    # mesh(U)
-   println("""=========== H MATRIX =============
-n=$n
-Explicit Matrix: $(t1[2]) seconds, $(t1[3]) bytes
-Implicit Matrix: $(t2[2]) seconds, $(t2[3]) bytes
-LU: $(t3[2]) seconds, $(t3[3]) bytes
-Iteration: $(t4[2]) seconds, $(t4[3]) bytes""")
+    if printout
+        println("""=========== H MATRIX =============
+        n=$n
+        Explicit Matrix: $(t1[2]) seconds, $(t1[3]) bytes
+        Implicit Matrix: $(t2[2]) seconds, $(t2[3]) bytes
+        LU: $(t3[2]) seconds, $(t3[3]) bytes
+        Iteration: $(t4[2]) seconds, $(t4[3]) bytes""")
+    end
     return U
 end
 
 
 
-function theta_scheme1D_full(a, b, c, u0, NT, T, n, L)
+function theta_scheme1D_full(a=1, b=1, c=-1.0, u0=x->exp(-50x^2), NT=100, T=1, n=5, L=1; printout=true)
     @assert a>=0
     @assert c<=0
     N = 2^n
@@ -135,18 +136,19 @@ function theta_scheme1D_full(a, b, c, u0, NT, T, n, L)
             U[:,i+1] = F\(B*U[:,i])
         end
     end
-    # mesh(U)
-   println("""=========== FULL MATRIX =============
-n=$n
-Explicit Matrix: $(t1[2]) seconds, $(t1[3]) bytes
-Implicit Matrix: $(t2[2]) seconds, $(t2[3]) bytes
-LU: $(t3[2]) seconds, $(t3[3]) bytes
-Iteration: $(t4[2]) seconds, $(t4[3]) bytes""")
+    if printout
+        println("""=========== FULL MATRIX =============
+        n=$n
+        Explicit Matrix: $(t1[2]) seconds, $(t1[3]) bytes
+        Implicit Matrix: $(t2[2]) seconds, $(t2[3]) bytes
+        LU: $(t3[2]) seconds, $(t3[3]) bytes
+        Iteration: $(t4[2]) seconds, $(t4[3]) bytes""")
+    end
     return U
 end
 
 
-function batch1()
+function batch1(minBlock=64, offset=2)
     a = 1.0
     b = 1.0
     c = -1.0
@@ -154,13 +156,13 @@ function batch1()
     L = 1.0
     NT = 500
     T = 1.0
-    theta_scheme1D(a, b, c, u0, NT, T, 5, L)
+    theta_scheme1D(a, b, c, u0, NT, T, 5, L; printout=false)
     for n = [10, 11, 12, 13, 14, 15, 16]
         theta_scheme1D(a, b, c, u0, NT, T, n, L)
     end
 end
 
-function batch2()
+function batch2(minBlock=64, offset=2)
     a = 1.0
     b = 1.0
     c = -1.0
@@ -168,8 +170,8 @@ function batch2()
     L = 1.0
     NT = 500
     T = 1.0
-    theta_scheme1D_full(a, b, c, u0, NT, T, 5, L)
+    theta_scheme1D_full(a, b, c, u0, NT, T, 5, L; printout=false)
     for n = [10, 11, 12, 13, 14, 15, 16]
-        theta_scheme1D_full(a, b, c, u0, NT, T, n, L)
+        theta_scheme1D_full(a, b, c, u0, NT, T, n, L, minBlock, offset)
     end
 end

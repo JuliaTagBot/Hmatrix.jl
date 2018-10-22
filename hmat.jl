@@ -192,7 +192,6 @@ function hmat_add!( a, b, scalar = 1.0)
     elseif a.is_rkmatrix && b.is_rkmatrix
         rkmat_add!(a, b, scalar, 1)
     elseif a.is_rkmatrix && b.is_hmat
-        # println("Used")
         to_fmat!(a)
         hmat_add!(a, b, scalar)
     elseif a.is_hmat && b.is_rkmatrix
@@ -507,7 +506,8 @@ function LinearAlgebra.:lu!(H::Hmat)
         lu!(H.children[1,1])
         hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, true)
         hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)
-        hmat_add!(H.children[2,2], H.children[2,1]*H.children[1,2], -1.0)
+        hh = H.children[2,1]*H.children[1,2]
+        hmat_add!(H.children[2,2], hh, -1.0)
         lu!(H.children[2,2])
     end
 end
@@ -596,5 +596,5 @@ function check_if_equal(H::Hmat, C::Array{Float64})
     G = Hmat()
     hmat_copy!(G, H)
     to_fmat!(G)
-        println("Error = $(norm(C-G.C,2)/norm(C,2))")
+    println("Error = $(norm(C-G.C,2)/norm(C,2))")
 end

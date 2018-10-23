@@ -24,6 +24,9 @@ end
 
 const tos = TimerOutput()
 
+function Base.:size(H::Hmat)
+    return (H.m, H.n)
+end
 
 # utilities
 function consistency(H, L=@__LINE__)
@@ -332,7 +335,7 @@ function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::AbstractArray{Float
 end
 
 # copy the hmatrix A to H in place.
-function hmat_copy!(H, A)
+function hmat_copy!(H::Hmat, A::Hmat)
     H.m = A.m
     H.n = A.n
     if A.is_fullmatrix
@@ -377,6 +380,13 @@ function to_fmat!(A::Hmat)
     A.is_fullmatrix = true
     A.is_rkmatrix = false
     A.is_hmat = false
+end
+
+function to_fmat(A::Hmat)
+    B = Hmat()
+    hmat_copy!(B, A)
+    to_fmat!(B)
+    return B.C
 end
 
 function to_fmat2!(A::Hmat)
@@ -590,6 +600,17 @@ function PyPlot.:matshow(H::Hmat)
     hmat_copy!(P, H)
     C = color_level(P)
     matshow(C)
+end
+
+function printmat(H)
+    println("=============== size = $(size(H,1))x$(size(H,2)) ===================")
+    for i = 1:size(H,1)
+        for j = 1:size(H,2)
+            @printf("%+0.4f ", H[i,j])
+        end
+        @printf("\n")
+    end
+    println("=====================================================================")
 end
 
 function check_if_equal(H::Hmat, C::Array{Float64})

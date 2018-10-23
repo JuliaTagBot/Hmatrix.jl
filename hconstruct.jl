@@ -371,9 +371,6 @@ end
 # x should be well pre-arranged
 function construct2D_low_rank(f, alpha, beta, x,  Nleaf, MaxBlock)
     function helper(H::Hmat, x, y)
-        # println("$s1, $e1, $s2 ,$e2")
-        @assert size(x,2)==2
-        @assert size(y,2)==2
         H.m = size(x,1)
         H.n = size(y,1)
         if H.m > MaxBlock || H.n > MaxBlock
@@ -393,7 +390,8 @@ function construct2D_low_rank(f, alpha, beta, x,  Nleaf, MaxBlock)
         elseif admissible2_2d(x, y)
             H.is_rkmatrix = true
             H.A, H.B = fast_construct_rk_mat2D(alpha, beta, x, y)
-            # D = full_mat(f, collect(s1:e1)*h, collect(s2:e2)*h)
+            # H.is_fullmatrix = true
+            # H.C = full_mat2D(f, x, y)
             # println("$s1, $e1, $s2, $e2, $(norm(D-H.A*H.B',2)/norm(D))")
         elseif H.m > Nleaf && H.n > Nleaf
                 H.is_hmat = true
@@ -416,12 +414,11 @@ function construct2D_low_rank(f, alpha, beta, x,  Nleaf, MaxBlock)
         
     end
     H = Hmat()
-    @assert size(x,2)==2
     helper(H, x, x)
     return H
 end
 
-function construct2D_low_rank_wrapper(f, alpha, beta, n, L,  minBlock, maxBlock)
+function makegrid2D(L, n, I=nothing)
     x = LinRange(-L, L, 2^n)
     x = reverse(x)
     X = zeros(2^n*2^n,2)
@@ -430,11 +427,12 @@ function construct2D_low_rank_wrapper(f, alpha, beta, n, L,  minBlock, maxBlock)
             X[i+(j-1)*2^n,:] = [x[i]; x[j]]
         end
     end
-    I, invI = rearange2D(n, n)
-    X = X[invI,:]
-    H = construct2D_low_rank(f, alpha, beta, X,  minBlock, maxBlock)
-    return H, I, invI
+    if I != nothing
+        X = X[I,:]
+    end
+    return X
 end
+
 
 function test_rearange2D()
     n = 5
@@ -461,16 +459,66 @@ function test_rearange2D()
 end
 
 function test_construct2D_low_rank()
-    for n = [7]
+    for n = [4,5,6,7,8,9,10]
         eps = 1
         f, alpha, beta = Merton_Kernel2D(eps, 5)
-        @time H, I, invI = construct2D_low_rank_wrapper(f, alpha, beta, n, 1.0, 8, 2^(2n-3))
-        # @time G = full_mat(f, x, y)
-        # to_fmat!(H)
-        # println(H.C)
-        matshow(H)
-        savefig("tmp.png")
-        close("all")
-        # println(norm(G-H.C,2)/norm(G,2))
+        function nf(x, y)
+            h = 2/2^n
+            if abs(x[1]-y[1])<h/4 && abs(x[2]-y[2])<h/4
+                return -10/h^2+f(x,y)
+            else
+                return f(x,y)
+            end
+        end
+        
+        I, invI = rearange2D(n, n)
+        X = makegrid2D(1.0, n, invI)
+        
+        t11 = @timed H = construct2D_low_rank(nf, alpha, beta, X, 16, 2^(2n-3))
+        t12 = @timed G = full_mat2D(nf, X, X)
+        HC = to_fmat(H)
+        mat_err = norm(G-HC,2)/norm(G,2)
+
+
+        y = rand(2^2n)
+        w1 = zero(y)
+        w2 = zero(y)
+        t21 = @timed begin
+            for i = 1:10
+                w1 = H*y
+            end
+        end
+
+        t22 = @timed begin
+            for i = 1:10
+                w2 = G*y
+            end
+        end
+
+        matvec_err = norm(w1-w2)/norm(w2)
+
+        t31 = @timed lu!(H)
+        t32 = @timed F = lu!(G)
+
+        t41 = @timed begin
+            for i = 1:10
+                w1 = H\y
+            end
+        end
+
+        t42 = @timed begin
+            for i = 1:10
+                w2 = F\y
+            end
+        end
+
+        solve_err = norm(w1-w2)/norm(w2)
+
+        
+        println("======= $(2^2n)x$(2^2n) ========")
+        @printf("MatCon:  Hmat:%0.6f, Full:%0.6f      Error=%g\n", t11[2], t12[2], mat_err)
+        @printf("MatVec:  Hmat:%0.6f, Full:%0.6f      Error=%g\n", t21[2]/10, t22[2]/10, matvec_err)
+        @printf("LU    :  Hmat:%0.6f, Full:%0.6f              \n", t31[2], t32[2])
+        @printf("Solve :  Hmat:%0.6f, Full:%0.6f      Error=%g\n", t41[2]/10, t42[2]/10, solve_err)
     end
 end

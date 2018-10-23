@@ -16,7 +16,6 @@ using Printf
 using FileIO
 using Interpolations
 
-include("library/tanh_sinh.jl")
 
 @pyimport numpy
 @pyimport scipy.signal as ss

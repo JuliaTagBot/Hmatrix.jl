@@ -61,13 +61,14 @@ function profile(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3); printout = true
     
     err = norm(w-g)/norm(g)
 
-    @printf("Matrix       : full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
-    @printf("Construction : (Hmat)%0.6f sec (Full)%0.6f sec\n", t1[2], t6[2])
-    @printf("MatVec       : (Hmat)%0.6f sec (Full)%0.6f sec\n", t2[2]/10, t7[2])
-    @printf("LU           : (Hmat)%0.6f sec (Full)%0.6f sec\n", t3[2], t8[2])
-    @printf("Solve        : (Hmat)%0.6f sec (Full)%0.6f sec\n", t4[2]/10, t9[2])
-    @printf("Error        : %g\n", err)
-
+    if printout
+        @printf("Matrix       : full=%d, rk=%d, level=%d\n", info1[1], info1[2], info1[3])
+        @printf("Construction : (Hmat)%0.6f sec (Full)%0.6f sec\n", t1[2], t6[2])
+        @printf("MatVec       : (Hmat)%0.6f sec (Full)%0.6f sec\n", t2[2]/10, t7[2])
+        @printf("LU           : (Hmat)%0.6f sec (Full)%0.6f sec\n", t3[2], t8[2])
+        @printf("Solve        : (Hmat)%0.6f sec (Full)%0.6f sec\n", t4[2]/10, t9[2])
+        @printf("Error        : %g\n", err)
+    end
 end
 
 function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3); printout = true)
@@ -127,7 +128,7 @@ end
 
 function batch_profile(minBlock=64, offset = 2)
     profile(5, 1/2^5; printout = false)
-    for n = [9,10,11,12,13,14]
+    for n = [10,11,12,13,14,15,16,17]
         maxBlock = 2^(n-offset)
         profile(n, 1/2^n, minBlock, maxBlock)
     end
@@ -135,7 +136,7 @@ end
 
 function batch_profile_hmat_only(minBlock=64, offset = 2)
     profile_hmat_only(5, 1/2^5; printout = false)
-    for n = [9,10,11,12,13,14,15,16,17]
+    for n = [10,11,12,13,14,15,16,17]
         maxBlock = 2^(n-offset)
         profile_hmat_only(n, 1/2^n, minBlock, maxBlock)
     end

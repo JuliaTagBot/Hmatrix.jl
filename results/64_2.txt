@@ -1,0 +1,56 @@
+=======================================================
+== n = 10  minBlock = 64 maxBlock = 256 ==
+Matrix       : full=46, rk=66, level=5
+Construction : (Hmat)0.142784 sec (Full)0.027664 sec
+MatVec       : (Hmat)0.000254 sec (Full)0.000457 sec
+LU           : (Hmat)0.170860 sec (Full)0.025958 sec
+Solve        : (Hmat)0.000264 sec (Full)0.000762 sec
+Error        : 6.44389e-09
+=======================================================
+== n = 11  minBlock = 64 maxBlock = 512 ==
+Matrix       : full=94, rk=156, level=6
+Construction : (Hmat)0.021514 sec (Full)0.127343 sec
+MatVec       : (Hmat)0.000628 sec (Full)0.001357 sec
+LU           : (Hmat)0.394792 sec (Full)0.072562 sec
+Solve        : (Hmat)0.000590 sec (Full)0.002993 sec
+Error        : 6.43396e-09
+=======================================================
+== n = 12  minBlock = 64 maxBlock = 1024 ==
+Matrix       : full=190, rk=342, level=7
+Construction : (Hmat)0.054024 sec (Full)2.449216 sec
+MatVec       : (Hmat)0.001878 sec (Full)0.005415 sec
+LU           : (Hmat)1.060772 sec (Full)0.293851 sec
+Solve        : (Hmat)0.001317 sec (Full)0.016220 sec
+Error        : 6.37457e-09
+=======================================================
+== n = 13  minBlock = 64 maxBlock = 2048 ==
+Matrix       : full=382, rk=720, level=8
+Construction : (Hmat)0.131851 sec (Full)9.754750 sec
+MatVec       : (Hmat)0.004019 sec (Full)0.016220 sec
+LU           : (Hmat)5.971444 sec (Full)1.770193 sec
+Solve        : (Hmat)0.002737 sec (Full)0.060447 sec
+Error        : 6.38987e-09
+=======================================================
+== n = 14  minBlock = 64 maxBlock = 4096 ==
+Matrix       : full=766, rk=1482, level=9
+Construction : (Hmat)0.311659 sec (Full)38.542021 sec
+MatVec       : (Hmat)0.012864 sec (Full)0.061625 sec
+LU           : (Hmat)22.044537 sec (Full)12.902336 sec
+Solve        : (Hmat)0.009000 sec (Full)0.222930 sec
+Error        : 6.4317e-09
+=======================================================
+== n = 15  minBlock = 64 maxBlock = 8192 ==
+Matrix       : full=1534, rk=3012, level=10
+Construction : (Hmat)0.827316 sec (Full)157.496211 sec
+MatVec       : (Hmat)0.027012 sec (Full)0.207830 sec
+LU           : (Hmat)85.628353 sec (Full)101.352185 sec
+Solve        : (Hmat)0.020982 sec (Full)0.933389 sec
+Error        : 6.4546e-09
+=======================================================
+== n = 16  minBlock = 64 maxBlock = 16384 ==
+Matrix       : full=3070, rk=6078, level=11
+Construction : (Hmat)1.870837 sec (Full)619.157110 sec
+MatVec       : (Hmat)0.078372 sec (Full)0.801931 sec
+LU           : (Hmat)326.129002 sec (Full)790.776722 sec
+Solve        : (Hmat)0.054247 sec (Full)3.589567 sec
+Error        : 6.46466e-09

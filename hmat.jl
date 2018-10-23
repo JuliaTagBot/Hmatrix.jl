@@ -563,10 +563,10 @@ end
 function color_level(H)
     function helper!(H, level)
         if H.is_fullmatrix
-            H.C = ones(size(H.C))* (-rand()*0.8)
+            H.C = ones(size(H.C))* (rand()*0.5)
         elseif H.is_rkmatrix
-            H.A = ones(H.m, 1)
-            H.B = ones(H.n, 1) * (level + rand()*0.8)
+            H.A = -ones(H.m, 1)
+            H.B = ones(H.n, 1) * (level + rand()*0.5)
         else
             for i = 1:2
                 for j = 1:2

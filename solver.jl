@@ -148,30 +148,30 @@ function theta_scheme1D_full(a=1, b=1, c=-1.0, u0=x->exp(-50x^2), NT=100, T=1, n
 end
 
 
-function batch1(minBlock=64, offset=2)
+function batch1(minBlock=64, offset=3)
     a = 1.0
     b = 1.0
     c = -1.0
     u0 = x->exp(-50x^2)
     L = 1.0
-    NT = 500
+    NT = 1000
     T = 1.0
-    theta_scheme1D(a, b, c, u0, NT, T, 5, L; printout=false)
+    theta_scheme1D(a, b, c, u0, NT, T, 5, L,  minBlock, offset; printout=false)
     for n = [10, 11, 12, 13, 14, 15, 16]
-        theta_scheme1D(a, b, c, u0, NT, T, n, L)
+        theta_scheme1D(a, b, c, u0, NT, T, n, L,  minBlock, offset)
     end
 end
 
-function batch2(minBlock=64, offset=2)
+function batch2(minBlock=64, offset=3)
     a = 1.0
     b = 1.0
     c = -1.0
     u0 = x->exp(-50x^2)
     L = 1.0
-    NT = 500
+    NT = 1000
     T = 1.0
     theta_scheme1D_full(a, b, c, u0, NT, T, 5, L; printout=false)
     for n = [10, 11, 12, 13, 14, 15, 16]
-        theta_scheme1D_full(a, b, c, u0, NT, T, n, L, minBlock, offset)
+        theta_scheme1D_full(a, b, c, u0, NT, T, n, L)
     end
 end

@@ -278,16 +278,18 @@ end
 # Linear Construction Time!
 function test_construct1D_low_rank()
     for n = [10,11,12,13,14]
+        n = 12
     h = 1/2^n
     eps = 1
     x = collect(1:2^n)*h
     y = collect(1:2^n)*h
-    f, alpha, beta = Merton_Kernel(eps, 10)
-    @time H = construct1D_low_rank(f, alpha, beta, h, 1,2^n, 64, 2^(n-3))
-    @time G = full_mat(f, x, y)
-    to_fmat!(H)
+    f, alpha, beta = Merton_Kernel(eps, 5)
+    @time H = construct1D_low_rank(f, alpha, beta, h, 1,2^n, 64, 2^(n-2))
+    # @time G = full_mat(f, x, y)
+    # to_fmat!(H)
     # println(H.C)
-    # matshow(H)
+    matshow(H)
+    return
     println(norm(G-H.C,2)/norm(G,2))
     end
 end

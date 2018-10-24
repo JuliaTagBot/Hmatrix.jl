@@ -148,6 +148,23 @@ def MatVec():
     plt.ylabel("Time (sec)")
     plt.show()
 
+def solve():
+    plt.title("Solve")
+    n1 = 2**np.arange(10,18)
+    n2 = 2**np.arange(10,17)
+    plt.loglog(n1, R1[4,:], "o-", label="$N_{\min}=32, N_{\mathrm{block}}=4$")
+    plt.loglog(n1, R2[4,:], "o-", label="$N_{\min}=64, N_{\mathrm{block}}=4$")
+    plt.loglog(n1, R3[4,:], "o-", label="$N_{\min}=32, N_{\mathrm{block}}=8$")
+    plt.loglog(n1, R4[4,:], "o-", label="$N_{\min}=64, N_{\mathrm{block}}=8$")
+    plt.loglog(n2, R5[3,:], "o-", label="Full Matrix")
+    plt.loglog(n1,1e-6*n1,"--",label="$\mathcal{O}(N)$")
+    plt.loglog(n1,1e-9*n1**2,"--",label="$\mathcal{O}(N^2)$")
+
+    plt.legend()
+    plt.xlabel("N")
+    plt.ylabel("Time (sec)")
+    plt.show()
+
 def batch_plot():
     p = """Explicit Matrix: (.*?) seconds, (.*?) bytes
 Implicit Matrix: (.*?) seconds, (.*?) bytes

@@ -1,0 +1,25 @@
+======= 256x256 ========
+MatCon:  Hmat:1.195607, Full:0.037102      Error=1.62383e-05
+MatVec:  Hmat:0.000212, Full:0.000135      Error=0.000134499
+LU    :  Hmat:0.305028, Full:0.003444              
+Solve :  Hmat:0.000141, Full:0.000032      Error=0.000126515
+======= 1024x1024 ========
+MatCon:  Hmat:0.328511, Full:0.347096      Error=5.37043e-06
+MatVec:  Hmat:0.000959, Full:0.000113      Error=7.6833e-05
+LU    :  Hmat:0.950295, Full:0.016058              
+Solve :  Hmat:0.001058, Full:0.000577      Error=0.00213592
+======= 4096x4096 ========
+MatCon:  Hmat:2.117972, Full:6.899713      Error=2.51022e-06
+MatVec:  Hmat:0.012319, Full:0.002630      Error=7.31401e-05
+LU    :  Hmat:7.774038, Full:0.362135              
+Solve :  Hmat:0.014764, Full:0.016663      Error=0.0024609
+======= 16384x16384 ========
+MatCon:  Hmat:9.287966, Full:103.582630      Error=1.20635e-06
+MatVec:  Hmat:0.062125, Full:0.041719      Error=7.03455e-05
+LU    :  Hmat:80.741488, Full:15.718850              
+Solve :  Hmat:0.102518, Full:0.239495      Error=0.00252678
+======= 65536x65536 ========
+MatCon:  Hmat:45.581285, Full:1683.682994      Error=5.90468e-07
+MatVec:  Hmat:0.430215, Full:0.704173      Error=6.85672e-05
+LU    :  Hmat:1125.756808, Full:951.126462              
+Solve :  Hmat:0.789764, Full:3.730649      Error=0.00255415

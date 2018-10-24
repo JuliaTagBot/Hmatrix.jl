@@ -24,6 +24,9 @@ end
 
 const tos = TimerOutput()
 
+function Base.:size(H::Hmat)
+    return (H.m, H.n)
+end
 
 # utilities
 function consistency(H, L=@__LINE__)
@@ -192,7 +195,6 @@ function hmat_add!( a, b, scalar = 1.0)
     elseif a.is_rkmatrix && b.is_rkmatrix
         rkmat_add!(a, b, scalar, 1)
     elseif a.is_rkmatrix && b.is_hmat
-        # println("Used")
         to_fmat!(a)
         hmat_add!(a, b, scalar)
     elseif a.is_hmat && b.is_rkmatrix
@@ -333,7 +335,7 @@ function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::AbstractArray{Float
 end
 
 # copy the hmatrix A to H in place.
-function hmat_copy!(H, A)
+function hmat_copy!(H::Hmat, A::Hmat)
     H.m = A.m
     H.n = A.n
     if A.is_fullmatrix
@@ -378,6 +380,13 @@ function to_fmat!(A::Hmat)
     A.is_fullmatrix = true
     A.is_rkmatrix = false
     A.is_hmat = false
+end
+
+function to_fmat(A::Hmat)
+    B = Hmat()
+    hmat_copy!(B, A)
+    to_fmat!(B)
+    return B.C
 end
 
 function to_fmat2!(A::Hmat)
@@ -507,7 +516,8 @@ function LinearAlgebra.:lu!(H::Hmat)
         lu!(H.children[1,1])
         hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, true)
         hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)
-        hmat_add!(H.children[2,2], H.children[2,1]*H.children[1,2], -1.0)
+        hh = H.children[2,1]*H.children[1,2]
+        hmat_add!(H.children[2,2], hh, -1.0)
         lu!(H.children[2,2])
     end
 end
@@ -563,10 +573,10 @@ end
 function color_level(H)
     function helper!(H, level)
         if H.is_fullmatrix
-            H.C = ones(size(H.C))* (-rand()*0.8)
+            H.C = ones(size(H.C))* (rand()*0.5)
         elseif H.is_rkmatrix
-            H.A = ones(H.m, 1)
-            H.B = ones(H.n, 1) * (level + rand()*0.8)
+            H.A = -ones(H.m, 1)
+            H.B = ones(H.n, 1) * (level + rand()*0.5)
         else
             for i = 1:2
                 for j = 1:2
@@ -592,9 +602,20 @@ function PyPlot.:matshow(H::Hmat)
     matshow(C)
 end
 
+function printmat(H)
+    println("=============== size = $(size(H,1))x$(size(H,2)) ===================")
+    for i = 1:size(H,1)
+        for j = 1:size(H,2)
+            @printf("%+0.4f ", H[i,j])
+        end
+        @printf("\n")
+    end
+    println("=====================================================================")
+end
+
 function check_if_equal(H::Hmat, C::Array{Float64})
     G = Hmat()
     hmat_copy!(G, H)
     to_fmat!(G)
-        println("Error = $(norm(C-G.C,2)/norm(C,2))")
+    println("Error = $(norm(C-G.C,2)/norm(C,2))")
 end

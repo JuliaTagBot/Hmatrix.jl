@@ -1,4 +1,4 @@
-include("../finance/fast.jl")
+include("third-party/fast.jl")
 function fraclap(n, s)
     N = 2^n
     A = zeros(N,N)

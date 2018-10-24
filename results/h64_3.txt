@@ -1,0 +1,64 @@
+=======================================================
+== n = 10  minBlock = 64 maxBlock = 128 ==
+Matrix       : full=46, rk=84, level=5, compress=0.256592, storage=269056
+LU           : full=46, rk=84, level=5, compress=0.228027, storage=239104
+Construction : (Hmat)0.023082 sec
+MatVec       : (Hmat)0.000606 sec
+LU           : (Hmat)0.101714 sec
+Solve        : (Hmat)0.000356 sec
+=======================================================
+== n = 11  minBlock = 32 maxBlock = 256 ==
+Matrix       : full=190, rk=360, level=7, compress=0.112762, storage=472960
+LU           : full=190, rk=360, level=7, compress=0.082275, storage=345088
+Construction : (Hmat)0.029046 sec
+MatVec       : (Hmat)0.001225 sec
+LU           : (Hmat)0.488319 sec
+Solve        : (Hmat)0.000604 sec
+=======================================================
+== n = 12  minBlock = 64 maxBlock = 512 ==
+Matrix       : full=190, rk=360, level=7, compress=0.079575, storage=1.33504e+06
+LU           : full=190, rk=360, level=7, compress=0.064331, storage=1.0793e+06
+Construction : (Hmat)0.068263 sec
+MatVec       : (Hmat)0.001492 sec
+LU           : (Hmat)1.255674 sec
+Solve        : (Hmat)0.001364 sec
+=======================================================
+== n = 13  minBlock = 64 maxBlock = 1024 ==
+Matrix       : full=382, rk=738, level=8, compress=0.043514, storage=2.92019e+06
+LU           : full=382, rk=738, level=8, compress=0.033752, storage=2.26509e+06
+Construction : (Hmat)0.146195 sec
+MatVec       : (Hmat)0.003098 sec
+LU           : (Hmat)4.602960 sec
+Solve        : (Hmat)0.002813 sec
+=======================================================
+== n = 14  minBlock = 64 maxBlock = 2048 ==
+Matrix       : full=766, rk=1500, level=9, compress=0.023604, storage=6.33626e+06
+LU           : full=766, rk=1500, level=9, compress=0.017639, storage=4.73498e+06
+Construction : (Hmat)0.300025 sec
+MatVec       : (Hmat)0.011378 sec
+LU           : (Hmat)14.839573 sec
+Solve        : (Hmat)0.007734 sec
+=======================================================
+== n = 15  minBlock = 64 maxBlock = 4096 ==
+Matrix       : full=1534, rk=3030, level=10, compress=0.012722, storage=1.36599e+07
+LU           : full=1534, rk=3030, level=10, compress=0.009012, storage=9.67603e+06
+Construction : (Hmat)0.655024 sec
+MatVec       : (Hmat)0.025794 sec
+LU           : (Hmat)50.691584 sec
+Solve        : (Hmat)0.022918 sec
+=======================================================
+== n = 16  minBlock = 64 maxBlock = 8192 ==
+Matrix       : full=3070, rk=6096, level=11, compress=0.006820, storage=2.92902e+07
+LU           : full=3070, rk=6096, level=11, compress=0.004600, storage=1.97548e+07
+Construction : (Hmat)1.716151 sec
+MatVec       : (Hmat)0.067908 sec
+LU           : (Hmat)186.455649 sec
+Solve        : (Hmat)0.055486 sec
+=======================================================
+== n = 17  minBlock = 64 maxBlock = 16384 ==
+Matrix       : full=6142, rk=12234, level=12, compress=0.003639, storage=6.2517e+07
+LU           : full=6142, rk=12234, level=12, compress=0.002346, storage=4.03054e+07
+Construction : (Hmat)3.079966 sec
+MatVec       : (Hmat)0.105276 sec
+LU           : (Hmat)769.659333 sec
+Solve        : (Hmat)0.121106 sec

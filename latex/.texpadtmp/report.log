@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=latex 2017.5.23)  24 OCT 2018 12:31
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=latex 2017.5.23)  24 OCT 2018 12:54
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -589,85 +589,82 @@ Overfull \hbox (105.7462pt too wide) in paragraph at lines 276--277
 [][][][][] 
  []
 
-[5]
-
-LaTeX Warning: Reference `equ:Aij' on page 1 undefined on input line 327.
-
-[6]
+[5] [6]
 Overfull \hbox (0.30652pt too wide) detected at line 383
 []\OMS/cmsy/m/n/10 j[] ^^@ [] []\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x \OMS/cmsy/m/n/10 ^^@ []\OT1/cmr/m/n/10 )[](\OML/cmm/m/it/10 y \OMS/cmsy/m/n/10 ^^@ []\OT1/cmr/m/n/10 )\OMS/cmsy/m/n/10 j ^^T [][] \OT1/cmr/m/n/10 = [][]
  []
 
 [7]
 
-LaTeX Warning: Reference `equ:alphabeta' on page 1 undefined on input line 426.
+LaTeX Warning: Reference `fig:storage' on page 1 undefined on input line 400.
 
+(./figures/icme_construction_time.pgf) (./figures/icme_construction_storage.pgf)
+Overfull \hbox (29.46082pt too wide) in paragraph at lines 435--437
+ [][]  [] 
+ []
 
-LaTeX Warning: Reference `equ:cons' on page 1 undefined on input line 431.
-
-(./figures/storage.pgf)
-File: figures/construction.eps Graphic file (type eps)
- <figures/construction.eps> [8] [9] [10] [11]
-Overfull \hbox (25.95688pt too wide) detected at line 612
+[8] [9] [10] [11]
+Overfull \hbox (25.95688pt too wide) detected at line 606
 []\OML/cmm/m/it/10 I\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) = [][](\OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x \OT1/cmr/m/n/10 + \OML/cmm/m/it/10 y\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y \OMS/cmsy/m/n/10 ^^@ []\OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 dy \OT1/cmr/m/n/10 + []\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) [][] \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]dy
  []
 
 [12]
-Overfull \hbox (19.08025pt too wide) detected at line 649
+Overfull \hbox (19.08025pt too wide) detected at line 643
 [][][]
  []
 
-[13]
 
-LaTeX Warning: Reference `tab:1d' on page 1 undefined on input line 663.
+LaTeX Warning: Reference `tab:1d' on page 1 undefined on input line 657.
 
 File: figures/fig31.eps Graphic file (type eps)
-<figures/fig31.eps> [14]
-Overfull \hbox (379.24382pt too wide) in paragraph at lines 726--727
+<figures/fig31.eps> [13] [14]
+Overfull \hbox (379.24382pt too wide) in paragraph at lines 720--721
 [][][][][] 
  []
 
 [15]
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 764.
+(hyperref)                removing `math shift' on input line 758.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 764.
+(hyperref)                removing `math shift' on input line 758.
 
-[16] (./figures/lu.pgf) (./figures/matvec.pgf) [17] (./figures/compress.pgf) (./figures/dense.pgf) [18] [19] (./figures/s1.pgf) (./figures/s2.pgf)
+(./figures/icme_matvec.pgf) [16] (./figures/icme_lu.pgf) (./figures/compress.pgf) (./figures/dense.pgf)
+Overfull \hbox (69.11143pt too wide) in paragraph at lines 822--823
+ [][] 
+ []
+
+[17] [18] [19] (./figures/s1.pgf) (./figures/s2.pgf)
 File: figures/fig5.eps Graphic file (type eps)
- <figures/fig5.eps> [20]
+ <figures/fig5.eps> [20] [21]
 File: figures/fig6.eps Graphic file (type eps)
  <figures/fig6.eps>
 File: figures/fig7.eps Graphic file (type eps)
- <figures/fig7.eps> [21]
+ <figures/fig7.eps>
 File: figures/fig8.eps Graphic file (type eps)
  <figures/fig8.eps> [22] [23]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 932.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 932.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 933.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 933.
  (/Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 932.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 932.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 933.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 933.
 Package rerunfilecheck Info: File `report.out' has not changed.
 (rerunfilecheck)             Checksum: 62A9259835671B94B8607078321EBA78;846.
 
 
 LaTeX Warning: There were undefined references.
 
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 932.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 933.
  ) 
 Here is how much of TeX's memory you used:
- 27256 strings out of 492996
- 663252 string characters out of 6132730
- 909137 words of memory out of 5000000
- 30354 multiletter control sequences out of 15000+600000
+ 27260 strings out of 492996
+ 663479 string characters out of 6132730
+ 1128735 words of memory out of 5000000
+ 30356 multiletter control sequences out of 15000+600000
  15153 words of font info for 59 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  62i,16n,96p,905b,609s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on /Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.dvi (23 pages, 336352 bytes).
+Output written on /Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.dvi (23 pages, 594192 bytes).

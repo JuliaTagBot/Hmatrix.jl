@@ -428,19 +428,13 @@ Similar to \cref{equ:alphabeta}, we can approximate the kernel using low rank su
 	k(\bx,\by) \approx \sum_{m,n=0}^{r} \alpha_{m,n}(s_1,t_1)\beta_{m,n}(s_2,t_2)
 \end{equation}
 
-Using the storage strategy in \Cref{equ:cons}, we are able to construct the $\mathcal{H}$-matrix directly. 
+Using the storage strategy in \Cref{equ:cons}, we are able to construct the $\mathcal{H}$-matrix directly. \Cref{fig:construction} shows the construction time as well as the storage consumption. Particularly, we compare the construction time of the $\mathcal{H}$-matrix with that of the dense matrix. We can see that the construction of $\mathcal{H}$-matrix is quite efficient, both in terms of storage consumption and time consumption: they both achieves an approximately linear asymptotic rate with respect to the problem size $N$. For 16k$\times$16k matrices, the speed of constructing an $\mathcal{H}$-matrix is almost 600 times faster than the direct approach. 
 
 \begin{figure}[htpb]
 \centering
-\scalebox{0.6}{\input{figures/storage.pgf}}
-\caption{By using the $\mathcal{H}$-matrix, the storage complexity is reduced to $\mathcal{O}(N)$.}
-\label{fig:storage}
-\end{figure}
-
-\begin{figure}[htpb]
-\centering
-\includegraphics[scale=0.6]{figures/construction.eps}
-\caption{By using the $\mathcal{H}$-matrix, the construction complexity is reduced to $\mathcal{O}(N)$.}
+\scalebox{0.4}{\input{figures/icme_construction_time.pgf}}~
+\scalebox{0.4}{\input{figures/icme_construction_storage.pgf}}
+\caption{The construction time and the storage consumption of $\mathcal{H}$-matrix. We compare the construction time of the $\mathcal{H}$-matrix with that of the dense matrix. We can see that the construction of $\mathcal{H}$-matrix is quite efficient, both in terms of storage consumption and time consumption: they both achieves an approximately linear asymptotic rate with respect to the problem size $N$.}
 \label{fig:construction}
 \end{figure}
 
@@ -775,31 +769,38 @@ We divide the interval $[-1,1]$ into $2^n$ equal length intervals, $h=\frac{1}{2
 \end{equation}
 the term $-\frac{10}{h}$ is used to adjust the condition number of the matrix~(it also arises naturally from implicit scheme of the PDE derived from L\'evy process). For admissibility condition,  we use $\eta=1$. For low-rank blocks, the rank is fixed to be 5. In effect, the rank can be chosen adaptively; however, we observe that the fixed rank strategy is practical for our cases. 
 
-\paragraph{Construction}
-
 \paragraph{Matrix Vector Multipliction}
+
+\Cref{fig:matvec} shows the complexity of the matrix vector multiplication for full matrices and $\mathcal{H}$-matrix. Compared to the dense matrix vector multiplication, the $\mathcal{H}$-matrix structure lends us great speedup. This enables us to device highly efficient iterative solvers, such as preconditioned conjugate gradient method, which may requires many matrix vector productions during the iterations.  
+
+\begin{figure}[htpb]
+\centering
+\scalebox{0.6}{\input{figures/icme_matvec.pgf}}
+\caption{Matrix vector production is also much more efficient using the $\mathcal{H}$-matrices than using the dense matrix. It has the asymptotic complexity rate slightly above $\mathcal{O}(N)$, compared to $\mathcal{O}(N^2)$ for dense matrices.}
+\label{fig:matvec}
+\end{figure}
+
 
 \paragraph{LU Decomposition}
 
-\paragraph{Solve}
-
-We have already shown that the storage and construction complexity is $\mathcal{O}(N)$ in \cref{fig:storage,fig:construction}. In \cref{fig:lu} we also show that the LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.Note the $\mathcal{H}$-LU decomposition is carried out using high accuracy and can serve as a direct solver for linear systems. 
+We have already shown that the storage and construction complexity is $\mathcal{O}(N)$ in \cref{fig:construction}. In \cref{fig:lu} we also show that the LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$. Note the $\mathcal{H}$-LU decomposition is carried out using high accuracy and can serve as a direct solver for linear systems. We need to point out that although the $\mathcal{H}$-LU tends to beat dense LU in terms of time consumption for large scale problems, the constant in the asymptotic rate $\mathcal{O}(N)$ is still large, which is well-known in literatures. Also, since we have fixed ranks, the practical time consumption is not optimal and has a higher asymptotic rate than the linear one. 
 
 \begin{figure}[htpb]
 \centering
-\scalebox{0.6}{\input{figures/lu.pgf}}
-\caption{LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.}
+\scalebox{0.6}{\input{figures/icme_lu.pgf}}
+\caption{LU decomposition of $\mathcal{H}$-LU and the dense LU. The $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.}
 \label{fig:lu}
 \end{figure}
 
-\Cref{fig:matvec} shows the complexity of the matrix vector multiplication for full matrices and $\mathcal{H}$-matrix. Since we have used large rank~($10$) compared to the smallest block size $32$ or $64$ to reassure high accuracy, the asymptotic complexity falls back to the dense matrix case. Even though the asymptotic complexity is $\mathcal{O}(N^2)$, the CPU time is considerably smaller than that of the dense matrix, where we see on average a 5x$\sim$8x speedup. 
 
-\begin{figure}[htpb]
-\centering
-\scalebox{0.6}{\input{figures/matvec.pgf}}
-\caption{LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.}
-\label{fig:matvec}
-\end{figure}
+
+\paragraph{Solve}
+
+One crucial step for a successful implicit scheme is to solve the equation $A\bx=\by$. We can of course use matrix-free solvers such as PCG. However, in the case that $A$ is ill-conditioned we may require a good preconditioner. Finding such a preconditioner is not an easy task, especially for the dense matrices, which is not covered by literature as comprehensively as that of sparse counterparts. $\mathcal{H}$-LU lends us a generic way to construct preconditioners or direct solvers. In both cases, we need to factorize $A$ as mentioned, and then solve $A\bx=\by$. 
+
+In this numerical experiment, we generate a random vector and record the solving time for both factorized $\mathcal{H}$-matrix and LU factorized dense matrix. 
+
+
 
 \Cref{fig:compress} shows the compression ratio of the $\mathcal{H}$-matrix, which is defined as
 \begin{equation}

@@ -1,0 +1,25 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{L\351vy Process}{}% 2
+\BOOKMARK [1][-]{section.3}{H Matrix}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Construction and Storage}{section.3}% 4
+\BOOKMARK [2][-]{subsection.3.2}{Matrix Vector Multiplication}{section.3}% 5
+\BOOKMARK [2][-]{subsection.3.3}{LU Decomposition}{section.3}% 6
+\BOOKMARK [1][-]{section.4}{Crank Nicolson Scheme Based on H-matrix}{}% 7
+\BOOKMARK [2][-]{subsection.4.1}{Model Problem}{section.4}% 8
+\BOOKMARK [2][-]{subsection.4.2}{Numerical Scheme}{section.4}% 9
+\BOOKMARK [2][-]{subsection.4.3}{H-matrix Construction}{section.4}% 10
+\BOOKMARK [2][-]{subsection.4.4}{Error Analysis}{section.4}% 11
+\BOOKMARK [3][-]{subsubsection.4.4.1}{Stability}{subsection.4.4}% 12
+\BOOKMARK [3][-]{subsubsection.4.4.2}{Consistency}{subsection.4.4}% 13
+\BOOKMARK [3][-]{subsubsection.4.4.3}{Convergence}{subsection.4.4}% 14
+\BOOKMARK [1][-]{section.5}{Singular and Slow Decaying L\351vy Measure}{}% 15
+\BOOKMARK [1][-]{section.6}{Applications}{}% 16
+\BOOKMARK [2][-]{subsection.6.1}{Option Pricing}{section.6}% 17
+\BOOKMARK [2][-]{subsection.6.2}{Quantum Mechanics}{section.6}% 18
+\BOOKMARK [2][-]{subsection.6.3}{Turbulence Flow}{section.6}% 19
+\BOOKMARK [1][-]{section.7}{Numerical Examples}{}% 20
+\BOOKMARK [2][-]{subsection.7.1}{Efficiency of H-Matrix: 1D Case}{section.7}% 21
+\BOOKMARK [2][-]{subsection.7.2}{Efficiency of H-Matrix: 2D Case}{section.7}% 22
+\BOOKMARK [2][-]{subsection.7.3}{Convection Diffusion Equation Driven by the L\351vy Process}{section.7}% 23
+\BOOKMARK [2][-]{subsection.7.4}{Singular and Slow Decaying L\351vy Measure}{section.7}% 24
+\BOOKMARK [1][-]{section.8}{Conclusion}{}% 25

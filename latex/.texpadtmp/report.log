@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=latex 2017.5.23)  24 OCT 2018 12:54
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=latex 2017.5.23)  24 OCT 2018 18:09
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -511,7 +511,14 @@ File: pgflibraryplotmarks.code.tex 2015/08/03 v3.0.1a (rcs-revision 1.14)
 \c@lemma=\count145
 \c@theorem=\count146
 \c@remark=\count147
- (/Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.aux)
+ (/Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.aux
+
+LaTeX Warning: Label `fig:solve' multiply defined.
+
+
+LaTeX Warning: Label `fig:solve@cref' multiply defined.
+
+)
 \openout1 = `report.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 45.
@@ -549,122 +556,173 @@ LaTeX Info: Redefining \nameref on input line 45.
 Package pgfplots Warning: running in backwards compatibility mode (unsuitable tick labels; missing features). Consider writing \pgfplotsset{compat=1.14} into your preamble.
  on input line 45.
 
-LaTeX Font Info:    Try loading font information for U+msa on input line 47.
+LaTeX Font Info:    Try loading font information for U+msa on input line 48.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 47.
+LaTeX Font Info:    Try loading font information for U+msb on input line 48.
  (/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 47.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 47.
+LaTeX Warning: No \author given.
 
 [1
 
 ]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 104.
- (/usr/local/texlive/2017/texmf-dist/tex/latex/base/omscmr.fd
+Overfull \hbox (2.75052pt too wide) in paragraph at lines 69--70
+[]\OT1/cmr/m/n/10 In this pa-per, we aim at solv-ing eq. ([][][][]) ef-fi-ciently based on the well-established
+ []
+
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 81.
+(/usr/local/texlive/2017/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 104.
- [2] [3]
-Overfull \hbox (12.25334pt too wide) in paragraph at lines 216--217
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 81.
+ [2]
+Overfull \hbox (12.25334pt too wide) in paragraph at lines 109--110
 []\OT1/cmr/m/n/10 In the case $\OML/cmm/m/it/10 ^^W \OMS/cmsy/m/n/10 ^^Q \OT1/cmr/m/n/10 0$, we ob-tain the Gaus-sian pro-cess. In the case $[][] [] \OML/cmm/m/it/10 dy$
  []
 
-[4]
-Overfull \hbox (57.31786pt too wide) in paragraph at lines 248--249
+[3]
+Overfull \hbox (57.31786pt too wide) in paragraph at lines 141--142
 []\OT1/cmr/m/n/10 To see this, con-sider the 1D case and with-out the ad-just-ment term $\OMS/cmsy/m/n/10 ^^@\OML/cmm/m/it/10 y[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 @[]f\OT1/cmr/m/n/10 )(\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OT1/cmr/bx/n/10 1[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )$.
  []
 
 
-Overfull \hbox (105.7462pt too wide) in paragraph at lines 276--277
+Overfull \hbox (105.7462pt too wide) in paragraph at lines 169--170
 [][][][][] 
  []
 
-[5] [6]
-Overfull \hbox (0.30652pt too wide) detected at line 383
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 185.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 185.
+
+[4] [5] [6]
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 336.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 336.
+
+[7] [8]
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 400.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 400.
+
+[9]
+Overfull \hbox (0.30652pt too wide) detected at line 473
 []\OMS/cmsy/m/n/10 j[] ^^@ [] []\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x \OMS/cmsy/m/n/10 ^^@ []\OT1/cmr/m/n/10 )[](\OML/cmm/m/it/10 y \OMS/cmsy/m/n/10 ^^@ []\OT1/cmr/m/n/10 )\OMS/cmsy/m/n/10 j ^^T [][] \OT1/cmr/m/n/10 = [][]
  []
 
-[7]
-
-LaTeX Warning: Reference `fig:storage' on page 1 undefined on input line 400.
-
-(./figures/icme_construction_time.pgf) (./figures/icme_construction_storage.pgf)
-Overfull \hbox (29.46082pt too wide) in paragraph at lines 435--437
+[10] (./figures/icme_construction_time.pgf) (./figures/icme_construction_storage.pgf)
+Overfull \hbox (29.46082pt too wide) in paragraph at lines 525--527
  [][]  [] 
  []
 
-[8] [9] [10] [11]
-Overfull \hbox (25.95688pt too wide) detected at line 606
-[]\OML/cmm/m/it/10 I\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) = [][](\OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x \OT1/cmr/m/n/10 + \OML/cmm/m/it/10 y\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y \OMS/cmsy/m/n/10 ^^@ []\OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 dy \OT1/cmr/m/n/10 + []\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) [][] \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]dy
- []
-
-[12]
-Overfull \hbox (19.08025pt too wide) detected at line 643
+[11] [12]
+Overfull \hbox (64.51408pt too wide) detected at line 603
 [][][]
  []
 
 
-LaTeX Warning: Reference `tab:1d' on page 1 undefined on input line 657.
+Overfull \hbox (68.69107pt too wide) detected at line 615
+[]\OML/cmm/m/it/10 T[] \OT1/cmr/m/n/10 := [] \OMS/cmsy/m/n/10 ^^@ []
+ []
 
-File: figures/fig31.eps Graphic file (type eps)
-<figures/fig31.eps> [13] [14]
-Overfull \hbox (379.24382pt too wide) in paragraph at lines 720--721
-[][][][][] 
+[13] [14]
+Overfull \hbox (25.95688pt too wide) detected at line 704
+[]\OML/cmm/m/it/10 I\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) = [][](\OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x \OT1/cmr/m/n/10 + \OML/cmm/m/it/10 y\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 u\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y \OMS/cmsy/m/n/10 ^^@ []\OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 dy \OT1/cmr/m/n/10 + []\OML/cmm/m/it/10 u[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 x\OT1/cmr/m/n/10 ) [][] \OML/cmm/m/it/10 ^^Z\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 ^^W\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )\OML/cmm/m/it/10 y[]dy
  []
 
 [15]
+Overfull \hbox (19.08025pt too wide) detected at line 741
+[][][]
+ []
+
+
+LaTeX Warning: Reference `tab:1d' on page 1 undefined on input line 755.
+
+[16]
+File: figures/fig31.eps Graphic file (type eps)
+ <figures/fig31.eps> [17]
+Overfull \hbox (379.24382pt too wide) in paragraph at lines 818--819
+[][][][][] 
+ []
+
+[18]
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 758.
+(hyperref)                removing `math shift' on input line 856.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 758.
+(hyperref)                removing `math shift' on input line 856.
 
-(./figures/icme_matvec.pgf) [16] (./figures/icme_lu.pgf) (./figures/compress.pgf) (./figures/dense.pgf)
-Overfull \hbox (69.11143pt too wide) in paragraph at lines 822--823
+File: figures/1D.eps Graphic file (type eps)
+<figures/1D.eps> [19] (./figures/compress.pgf) (./figures/icme_structure.pgf)
+Overfull \hbox (31.68303pt too wide) in paragraph at lines 891--893
+ [][]  []  
+ []
+
+[20] (./figures/icme_matvec.pgf) (./figures/icme_lu.pgf) [21] (./figures/solve.pgf)
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 937.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 937.
+
+File: figures/2D.eps Graphic file (type eps)
+<figures/2D.eps> [22] (./figures/dense.pgf)
+Overfull \hbox (69.11143pt too wide) in paragraph at lines 959--960
  [][] 
  []
 
-[17] [18] [19] (./figures/s1.pgf) (./figures/s2.pgf)
+[23] [24] (./figures/s1.pgf) (./figures/s2.pgf) [25]
 File: figures/fig5.eps Graphic file (type eps)
- <figures/fig5.eps> [20] [21]
+ <figures/fig5.eps> [26]
 File: figures/fig6.eps Graphic file (type eps)
  <figures/fig6.eps>
 File: figures/fig7.eps Graphic file (type eps)
  <figures/fig7.eps>
 File: figures/fig8.eps Graphic file (type eps)
- <figures/fig8.eps> [22] [23]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 933.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 933.
+ <figures/fig8.eps> [27] [28] [29]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1082.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1082.
  (/Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 933.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 933.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 1082.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1082.
 Package rerunfilecheck Info: File `report.out' has not changed.
 (rerunfilecheck)             Checksum: 62A9259835671B94B8607078321EBA78;846.
 
 
 LaTeX Warning: There were undefined references.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 933.
+
+LaTeX Warning: There were multiply-defined labels.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1082.
  ) 
 Here is how much of TeX's memory you used:
- 27260 strings out of 492996
- 663479 string characters out of 6132730
- 1128735 words of memory out of 5000000
- 30356 multiletter control sequences out of 15000+600000
- 15153 words of font info for 59 fonts, out of 8000000 for 9000
+ 27317 strings out of 492996
+ 664271 string characters out of 6132730
+ 1042039 words of memory out of 5000000
+ 30399 multiletter control sequences out of 15000+600000
+ 17305 words of font info for 67 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 62i,16n,96p,905b,609s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 62i,16n,96p,927b,609s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on /Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.dvi (23 pages, 594192 bytes).
+Output written on /Users/kailaix/Desktop/hmat/latex/.texpadtmp/report.dvi (29 pages, 692020 bytes).

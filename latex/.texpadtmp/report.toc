@@ -1,0 +1,29 @@
+\contentsline {section}{\numberline {1}Introduction}{1}{section.1}
+\contentsline {section}{\numberline {2}L\'evy Process}{3}{section.2}
+\contentsline {section}{\numberline {3}$\mathcal {H}$ Matrix}{5}{section.3}
+\contentsline {subsection}{\numberline {3.1}Construction and Storage}{5}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}Matrix Vector Multiplication}{7}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}LU Decomposition}{7}{subsection.3.3}
+\contentsline {section}{\numberline {4}Crank Nicolson Scheme Based on $\mathcal {H}$-matrix}{8}{section.4}
+\contentsline {subsection}{\numberline {4.1}Model Problem}{8}{subsection.4.1}
+\contentsline {subsection}{\numberline {4.2}Numerical Scheme}{8}{subsection.4.2}
+\contentsline {subsection}{\numberline {4.3}$\mathcal {H}$-matrix Construction}{9}{subsection.4.3}
+\contentsline {subsection}{\numberline {4.4}Error Analysis}{12}{subsection.4.4}
+\contentsline {subsubsection}{\numberline {4.4.1}Stability}{12}{subsubsection.4.4.1}
+\contentsline {subsubsection}{\numberline {4.4.2}Consistency}{13}{subsubsection.4.4.2}
+\contentsline {subsubsection}{\numberline {4.4.3}Convergence}{14}{subsubsection.4.4.3}
+\contentsline {section}{\numberline {5}Singular and Slow Decaying L\'evy Measure}{14}{section.5}
+\contentsline {section}{\numberline {6}Applications}{18}{section.6}
+\contentsline {subsection}{\numberline {6.1}Option Pricing}{18}{subsection.6.1}
+\contentsline {subsection}{\numberline {6.2}Quantum Mechanics}{18}{subsection.6.2}
+\contentsline {subsection}{\numberline {6.3}Turbulence Flow}{19}{subsection.6.3}
+\contentsline {section}{\numberline {7}Numerical Examples}{19}{section.7}
+\contentsline {subsection}{\numberline {7.1}Efficiency of $\mathcal {H}$-Matrix: 1D Case}{19}{subsection.7.1}
+\contentsline {paragraph}{Matrix Vector Multipliction}{21}{section*.2}
+\contentsline {paragraph}{LU Decomposition}{22}{section*.3}
+\contentsline {paragraph}{Solve}{22}{section*.4}
+\contentsline {subsection}{\numberline {7.2}Efficiency of $\mathcal {H}$-Matrix: 2D Case}{23}{subsection.7.2}
+\contentsline {subsection}{\numberline {7.3}Convection Diffusion Equation Driven by the L\'evy Process}{24}{subsection.7.3}
+\contentsline {paragraph}{Verification Method}{25}{section*.5}
+\contentsline {subsection}{\numberline {7.4}Singular and Slow Decaying L\'evy Measure}{26}{subsection.7.4}
+\contentsline {section}{\numberline {8}Conclusion}{28}{section.8}

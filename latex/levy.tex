@@ -2,7 +2,8 @@
 %\usepackage{minted}
 \documentclass[3p,,preprint,12pt]{elsarticle}
 
-
+\usepackage{titlecaps}
+\Addlcwords{the of into via for and of on in an to hp-finite with}
 \usepackage{tabulary,xcolor}
 \usepackage{amsfonts,amsmath,amssymb}
 \usepackage[T1]{fontenc}
@@ -185,7 +186,7 @@
 \title{Efficient Numerical Method for Models Driven by L\'evy Process via Hierarchical Matrices}
 
 \begin{abstract}
-	The modeling via the fractional partial differential equation or the L\'evy process has been an active area of research and has many applications. However, lack of efficient numerical computation method impede people from adopting such a modeling tool. We proposed an efficient solver for convection diffusion equation whose operator is the infinitesimal generator of a L\'evy process based on $\mathcal{H}$-matrix technique. The proposed Crank Nicolson scheme is unconditionally stable and has theoretical $\mathcal{O}(h^2+\Delta t^2)$ convergence rate. The $\mathcal{H}$-matrix technique has theoretical $\mathcal{O}(N)$ space and computational complexity compared to $\mathcal{O}(N^2)$ and $\mathcal{O}(N^3)$ respectively for the direct method. Numerical experiments demonstrate the efficiency of the new algorithm. 
+	The modeling via the fractional partial differential equation or the L\'evy process has been an active area of research and has many applications. However, lack of efficient numerical computation methods impedes people from adopting such a modeling tool. We proposed an efficient solver for convection diffusion equation whose operator is the infinitesimal generator of a L\'evy process based on $\mathcal{H}$-matrix technique. The proposed Crank Nicolson scheme is unconditionally stable and has theoretical $\mathcal{O}(h^2+\Delta t^2)$ convergence rate. The $\mathcal{H}$-matrix technique has theoretical $\mathcal{O}(N)$ space and computational complexity compared to $\mathcal{O}(N^2)$ and $\mathcal{O}(N^3)$ respectively for the direct method. Numerical experiments demonstrate the efficiency of the new algorithm. 
 \end{abstract}
 
 
@@ -203,7 +204,7 @@ L\'evy Process \sep Hierarchical Matrices \sep Fractional Partial Differential E
 \lib{Introduction}
 Over the last years anomalous diffusion or nonlocal modeling have seen a tremendous increase in popularities in many fields. Of particular interest is the fractional partial differential equations~(FPDE) arising from many disciplines such as image processing~\cite{gatto2015numerical,unser2009multiresolution}, finance~\cite{scalas2000fractional}, stochastic dynamics~\cite{bogdan2003censored}, fractional kinetics and anomalous transport~\cite{zaslavsky2002chaos}, fractal conversation laws~\cite{alibaud2012continuous}, fluid dynamics~\cite{chen2010anomalous,chen2006speculative,epps2018turbulence}, and so on. One extensively studied fractional operator is the fractional Laplacian~\cite{lischke2018fractional}
 \begin{equation}
-	(-\Delta)^s u(\bx)=\mathrm{r.v.}\int_{\RR^d} c_{d,s}\frac{u(\bx+\by)-u(\bx)}{|\by|^{d+2s}}d\bx
+	-(-\Delta)^s u(\bx)=c_{d,s}\mathrm{p.v.}\int_{\RR^d} \frac{u(\bx+\by)-u(\bx)}{|\by|^{d+2s}}d\bx\quad c_{d,s} = \frac{4^s\Gamma(d/2+s)}{\pi^{d/2}|\Gamma(-s) |}
 \end{equation}
 which is considered as the natural generalization of the Laplacian operator to the normal Laplacian operator. However, the numerical computation of the FPDE with such operators exhibits particular difficulties~\cite{bonito2018numerical,huang2016finite}: (1) the kernel function $\frac{c_{d,s}}{|\by|^{d+2s}}$ has singularities which must be dealt with special care; (2) the kernel function is nonlocal, and therefore the corresponding coefficient matrix is typically dense. The second difficulty impedes people from using the new modeling tool due to its prohibitable computational requirement. There are some efforts to speed up the computation~\cite{meidner2017hp,kyprianou2017unbiased,acosta2018regularity,zhao2017adaptive}, mainly through analyzing its special structure or modifying the definition. 
 
@@ -251,14 +252,14 @@ One remarkable property of the L\'evy process is that any L\'evy process has a s
 \end{equation}
 where
 \begin{equation}\label{equ:eta}
-	\eta(\xi) = \ii (b, \xi) - \frac{1}{2}(\xi, a\xi) + \int_{\RR^d\backslash \{0\}} \left[ e^{\ii (\xi, y)}-1-\ii (\xi, y)\mathbf{1}[0<|y|<1](y) \right]dy
+	\eta(\xi) = \ii (b, \xi) - \frac{1}{2}(\xi, a\xi) + \int_{\RR^d\backslash \{0\}} \left[ e^{\ii (\xi, y)}-1-\ii (\xi, y)\mathbf{1}_{0<|y|<1}(y) \right]dy
 \end{equation}
 here $b\in \RR^d$, $a$ is a positive definite symmetric matrix in $\RR^{d\times d}$, and $\nu$ is a L\'evy measure which satisfies
 \begin{equation}
 	\int_{\RR^d\backslash \{0\}} \min\{1, |y|^2\}\nu(dy)<\infty
 \end{equation}
 
-In the case $\nu\equiv 0$, we obtain the Gaussian process. In the case $\int_{\RR^d} \left[ e^{\ii (\xi, y)}-1\right]dy$ is well defined, we can omit the term $\ii (\xi, y)\mathbf{1}[0<|y|<1](y)$. 
+In the case $\nu\equiv 0$, we obtain the Gaussian process. In the case $\int_{\RR^d} \left[ e^{\ii (\xi, y)}-1\right]dy$ is well defined, we can omit the term $\ii (\xi, y)\mathbf{1}_{0<|y|<1}(y)$. 
 
 In the case $\nu<\infty$, the L\'evy process has the decomposition
 \begin{equation}
@@ -391,15 +392,24 @@ The idea of the hierarchical matrix is then to classify each block $A_{IJ}$ into
 \begin{itemize}
 \item Full matrix. In this case, $A_{IJ}$ is represented using fully populated matrices.
 \item Low rank matrix. In the case $I$ and $J$ are admissible, we can store the block $A_{IJ}$ in the form of low rank matrices. This will help us save storage and computational cost.
-	\item $\mathcal{H}$-matrix. For the blocks that are neither low rank matrix nor small enough to become a full matrix, it is further divided into subblocks~(for example, via quadtree structure). 
+	\item $\mathcal{H}$-matrix. For the blocks that are neither low rank matrix nor small enough to become a full matrix, it is further divided into sub-blocks~(for example, via quadtree structure). 
 \end{itemize}
 
-The $\mathcal{H}$-matrix will be stored in a hierarchical format. 
-
+The $\mathcal{H}$-matrix will be stored in a hierarchical format, and there exists three kinds of sub-blocks
+\begin{itemize}
+	\item Full dense blocks. These blocks cannot be represented as low rank block and cannot be subdivided because its size is smaller than a pre-assigned threshold.
+	\item Low rank blocks. These blocks are stored using low rank factorizations. Note low rank blocks can also be dense blocks. We have abused the terminology here but it can be easily figured out from context.
+	\item Hierarchical blocks, or $\mathcal{H}$-blocks. These blocks do not have low rank factorization but their sizes are so large that they can be further subdivided into new blocks.
+\end{itemize}
+The hyper-parameters we need to decide for the $\mathcal{H}$-matrix construction are
+\begin{itemize}
+	\item The minimum block size $N_{\min}$. It defined the minimum block size we can have for the sub-blocks in the $\mathcal{H}$-block. This indicates that if a $N\times N$ matrix is not a low-rank matrix, where $N_{\min}\leq N< 2N_{\min}$, we should store this sub-block in the format of a dense matrix.
+	\item The maximum block size $N_{\max}$. It defines the maximum sub-block size we can have. For convenience, we define it in terms of $N_{\mathrm{block}}:=\left\lceil\frac{N}{N_{\max}}\right\rceil$, where $N$ is the matrix dimension.
+\end{itemize}
 
 \subsection{Matrix Vector Multiplication}
 
-One advantage of the $\mathcal{H}$ matrix is that the matrix vector multiplication is cheap. The matrix vector multiplication of $\mathcal{H}$-matrix can be described through the rule of the operator for three different kinds of subblocks
+One advantage of the $\mathcal{H}$ matrix is that the matrix vector multiplication is cheap. The matrix vector multiplication of $\mathcal{H}$-matrix can be described through the rule of the operator for three different kinds of sub-blocks
 \begin{itemize}
 	\item Full matrix. In this case, the normal dense matrix vector multiplication is used. 
 	\item Low rank matrix. The operator can be carried out quite efficiently via
@@ -407,7 +417,7 @@ One advantage of the $\mathcal{H}$ matrix is that the matrix vector multiplicati
 		(UV')x = U(V'x)
 	\end{equation}
 	note $V'x$ is a $r\times 1$ vector.
-	\item $\mathcal{H}$-matrix. If the subblock is 
+	\item $\mathcal{H}$-matrix. If the sub-block is 
 	\begin{equation}
 		B = \begin{bmatrix}
 			B_{11}&B_{12}\\
@@ -425,6 +435,8 @@ One advantage of the $\mathcal{H}$ matrix is that the matrix vector multiplicati
 		\end{bmatrix}
 	\end{equation}
 \end{itemize}
+
+
 
 
 
@@ -786,15 +798,15 @@ Finally, we are in a position to prove the convergence of the numerical scheme \
 	The theorem is a direct result that the stability and consistency implies convergence~\cite{giles2005convergence}. 
 \end{proof}
 
-\lib{Singular and Slow Decaying L\'evy Measure}\label{sect:extension}
+\lib{Singular and/or Slow Decaying L\'evy Measure}\label{sect:extension}
 
-We now consider the general case where $\nu(y)$ can behave very badly. We will only state the algorithm in 1D, but mention that it can be directly generalized to higher dimensions. 
+We now consider the general case where $\nu(y)$ can behave very badly. We will only state the algorithm in 1D, but point out that it can be directly generalized to higher dimensions. 
 
 One such example is the fractional Laplacian where the L\'evy measure is 
 \begin{equation}
 	\nu(y) = \frac{c_{1,s}}{|y|^{1+2s}}
 \end{equation}
-where $s\in (0,1)$ and $c_{1,s}$ is a positive constant. Note in this case, $\int_{\RR}(u(x+y)-u(x))\nu(y)dy$ must be understood in the principal value integration. The corresponding stochastic process associated with the fractional Laplacian is the $\alpha$-stable process. 
+where $s\in (0,1)$ and $c_{1,s}$ is a positive constant. Note in this case, $-\int_{\RR}(u(x+y)-u(x))\nu(y)dy$ must be understood in the principal value integration. The corresponding stochastic process associated with the fractional Laplacian is the $\alpha$-stable process. 
 
 Consider the general singular integral operator
 \begin{equation}\label{equ:Ix}
@@ -813,19 +825,16 @@ As a reminder, we require $\nu(y)$ to satisfy the following conditions
 \begin{equation}\label{equ:ny}
 	\int_{-r}^ry^2\nu(y)dy <\infty, \quad \int_{|y|\geq r} \nu(y)dy<\infty
 \end{equation} 
+where $r>0$ is a constant. 
 
 The choice of $\rho(y)$ doesn't matter. In fact, if $\tilde\rho(x)$ is another window function that satisfies \cref{equ:rho_condition}, we have
 \begin{align}
 	&\int_{\RR}(u(x+y)-u(x)-\tilde\rho(y)u'(x)y)\nu(y)dy \\
 	=& \int_{\RR}(u(x+y)-u(x)-\rho(y)u'(x)y)\nu(y)dy + u'(x)\int_{\RR}(\rho(y)-\tilde\rho(y)y)\nu(y)dy
 \end{align}
-we can add the second drift term into the model. 
+we can add the second term to the drift term in the model. 
 
-The first condition in \cref{equ:rho_condition} is designed to take into consideration of the heavy tail case, where $\nu(y)$ can decay like $\mathcal{O}(1/|y|^{1+2s})$ for some $s\in (0,1)$. For example, in the special case
-\begin{equation}
-	\nu(y) = c_{1,s}\frac{1}{|y|^{1+2s}}
-\end{equation}
-we obtain the fractional Laplacian. Then $\int_{\RR}(u(x+y)-u(x))\nu(y)dy$ is not well defined but only in the principle value integration, and it is easy to see
+The first condition in \cref{equ:rho_condition} is designed to take into consideration of the heavy tail case, where $\nu(y)$ can decay like $\mathcal{O}(1/|y|^{1+2s})$ for some $s\in (0,1)$. For example, in the special case 	$\nu(y) = c_{1,s}\frac{1}{|y|^{1+2s}}$, $\int_{\RR}(u(x+y)-u(x))\nu(y)dy$ is not well defined but only in the principle value integration, and it is easy to see
 \begin{equation}
 	\mathrm{p.v.}\int_{\RR}(u(x+y)-u(x))\nu(y)dy = \int_{\RR}(u(x+y)-u(x)-\rho(y)u'(x)y)\nu(y)dy
 \end{equation}
@@ -835,7 +844,7 @@ Although $\int_{\RR}(u(x+y)-u(x)-\rho(y)u'(x)y)\nu(y)dy$ is well-defined in this
 \begin{equation}
 	(u(x+y)-u(x)-\rho(y)u'(x)y)\nu(y) = \mathcal{O}\left(\frac{1}{|y|^{2s-1}}\right)
 \end{equation}
-in the case $s\rightarrow 0+$, we will have numerical difficulty if a direct numerical integration is applied. In the following, we will propose a numerical discretization for \cref{equ:Ix} targeting at the most numerical challenging case described above 
+in the case $s\rightarrow 0+$, we will have numerical difficulty if a direct numerical integration is applied, especially for $s<\frac{1}{2}$. In the following, we will propose a numerical discretization for \cref{equ:Ix} targeting at the most numerical challenging case described above 
 \begin{equation}\label{equ:ny2}
 	\nu(y) = \frac{n_0(y)}{|y|^{1+2s}}
 \end{equation} 
@@ -845,11 +854,11 @@ We make two assumptions on $u(x)$
 \begin{itemize}
 	\item $u\in C(\RR)$ 
 	\item Local smoothness. $u\in C^4([x-\delta, x+\delta])$ for some $\delta>0$, i.e., $u$ has fourth order derivative near the location where we want to evaluate $I(x)$.
-	\item Far field asymptotic limit. The far field contribution
+	\item Far field asymptotic limit. Assume $L_W>r$. The far field contribution
 	\begin{equation}\label{equ:fxy}
-		f_x(y) = \int_{\RR}u(x+y)\nu(y)dy
+		f_x^{L_W}(y) = \int_{|y|>L_W}u(x+y)\nu(y)dy
 	\end{equation}
-	is well defined. In the case $\frac{u(x+y)}{u(y)}\rightarrow f(y)$, this term can be approximated by $\int_\RR f(y)dy$
+	is well defined. In the case $\frac{u(x+y)}{u(y)}\rightarrow f(y)$, this term can be approximated by $\int_{|y|>L_W} f(y)dy$
 \end{itemize}
 
 The strategy is to singularity subtraction~\cite{minden2018simple}. We subtract a local diffusion term from \cref{equ:Ix}
@@ -866,16 +875,12 @@ and
 	I_2(x) =& \int_{|y|> L_W}(u(x+y)-u(x)-\rho(y)u'(x)y- \frac{1}{2}\rho(y)u''(x)y^2 )\nu(y)dy\\
 	 = &\int_{|x|> L_W}(u(x+y)-u(x) )\nu(y)dy = f_x^{L_W} - u(x)\int_{|y|> L_W}\nu(y)dy
 \end{align}
-where $L_W$ is a mask window and satisfies
-\begin{equation}
-	L_W > r
-\end{equation}
 
 By Taylor expansion it is easy to see
 \begin{equation}
 	u(x+y)-u(x)-\rho(y)u'(x)y- \frac{1}{2}\rho(y)u''(x)y^2 =\mathcal{O}(|y|^3)
 \end{equation}
-and therefore $I_1(x)$ will behave like $\mathcal{O}(|y|^{2-2s})$ near the origin. We will prove this fact in the appendix. That indicates the integrand becomes continuous near the origin. Thus $I_1(x)$ is well defined.   
+and therefore the integrand of $I_1(x)$ will behave like $\mathcal{O}(|y|^{2-2s})$ near the origin. Since $2-2s\geq 0$, the integrand becomes continuous near the origin. Thus $I_1(x)$ is well defined.   
 
 As $y\rightarrow \infty$, the term terms in $I_2(x)$ are both well defined according to the assumptions \cref{equ:fxy,equ:ny}. 
 
@@ -890,11 +895,11 @@ We now focus on the numerical discretization of $I_1(x)$, $I_2(x)$ and $I_3(x)$.
 Since the integrand in $I_1(x)$ is continuous, we can use a simple trapezoidal quadrature rule to approximate the integral. Assume the quadrature weights are $w_j$ given by $w_{-N}=w_N = \frac{h}{2}$ and $w_j=h$, $j=-N+1, -N+2, \ldots, N-2, N-1$.
 \begin{equation}\label{equ:I1approx}
   \begin{aligned}
-	I_1(x_i) &\approx \sum\limits_{j =  - N}^N {{u_{i + j}}n(jh){w_j}}  - {u_i}\sum\limits_{j =  - N}^N {n(jh){w_j}} \\
-	& - \frac{{{u_{i + 1}} - {u_{i - 1}}}}{h}\sum\limits_{j =  - N}^N {\rho (jh)n(jh)jh}  - \frac{{{u_{i + 1}} + {u_{i - 1}} - 2{u_i}}}{{2{h^2}}}\sum\limits_{j =  - N}^N {\rho (jh){{(jh)}^2}n(jh)} 
+	I_1(x_i) &\approx {\sum\limits_{j =  - N}^N}' {{u_{i + j}}\nu(jh){w_j}}  - {u_i}{\sum\limits_{j =  - N}^N}' {\nu(jh){w_j}} \\
+	& - \frac{{{u_{i + 1}} - {u_{i - 1}}}}{h}{\sum\limits_{j =  - N}^N}' {\rho (jh)\nu(jh)jh}  - \frac{{{u_{i + 1}} + {u_{i - 1}} - 2{u_i}}}{{2{h^2}}}{\sum\limits_{j =  - N}^N}' {\rho (jh){{(jh)}^2}\nu(jh)} 
 \end{aligned}
 \end{equation}
-where $\sum\limits_{j =  - N}^N$ denotes the summation excluding $j=0$. 
+where ${\sum\limits_{j =  - N}^N}'$ denotes the summation excluding $j=0$. 
 
 For $I_2(x)$, $f_x^{L_W}$ is either provided as an input or computed using a numerical quadrature and so is $\int_{|x|>L_W} \nu(y)dy$. We will see how these terms are obtained in the examples below. 
 \begin{equation}\label{equ:I2approx}
@@ -907,7 +912,7 @@ For $I_3$, a central difference scheme is applied to the second order derivative
 and the integral can either be computed analytically or numerically. 
 
 
-In practice, we want to compute $I(x)$ for $x\in [-L,L]$, according to \cref{tab:1d}, we need to know the values of $u(x)$ on $[-L-L_W,L+L_W]$ and its corresponding far-field interactions. \Cref{fig:fig31} visualizes the relationship. To compute $I(x_i)$, we need to compute the near field interaction and local interaction using values of $u(x)$ from the green area. The values of $u(x)$ are provided in the green and red area for computing $I(x)$, $x\in [-L, L]$.
+In practice, we want to compute $I(x)$ for $x\in [-L,L]$, according to \cref{equ:I1approx}, we need to know the values of $u(x)$ on $[-L-L_W,L+L_W]$ and its corresponding far-field interactions. \Cref{fig:fig31} visualizes the relationship. To compute $I(x_i)$, we need to compute the near field interaction and local interaction using values of $u(x)$ from the green area. The values of $u(x)$ are provided in the green and red area for computing $I(x)$, $x\in [-L, L]$.
 
 \begin{figure}[H] % \usepackage{float}
 \centering
@@ -916,6 +921,14 @@ In practice, we want to compute $I(x)$ for $x\in [-L,L]$, according to \cref{tab
 \label{fig:fig31}
 \end{figure}
 
+In sum, we have the formula
+\begin{equation}
+	(\delta_L u)_i = I_1(x_i) + I_2(x_i) + I_3(x_i) = \bw^T \bu + \bf
+\end{equation}
+for some vector $\bw\in \RR^{|\mathcal{I}|}$, $\bf\in \RR^{|\mathcal{I}|}$ and 
+\begin{equation}
+	\bu = (u_i)_{i\in \mathcal{I}}
+\end{equation}
 
 Although we have used a different formula for the evaluation of the integral, we should soon realize that in the far-away off-diagonal parts, the entries are still $\nu_j h$~(except on the boundary), which the $\mathcal{H}$ matrix construction routine can still work. 
 
@@ -1004,10 +1017,11 @@ If we assume that the equilibrium probability distribution of particle speeds to
 
 \lib{Numerical Examples}
 
+In this section, we carry out various numerical experiments with focus on the efficiency. The correctness is checked with either numerical results from direct method or analytical solution. The codes are implemented using \texttt{julia-1.0.0} and run on a Ubuntu server with Intel(R) Xeon(R) CPU E7-8890 v3 @ 2.50GHz. 
 
 \subsection{Efficiency of $\mathcal{H}$-Matrix: 1D Case}
 
-In this section, we show the efficiency of the arithmetic operations using the $\mathcal{H}$-matrix in 1D. In the experiment, the minimum block size is either 64 or 32. The matrix sizes tested are $2^5, 2^6, \ldots, 2^{17}$. The maximum block size for $2^n\times 2^n$ matrices is $2^{n-3}\times 2^{n-3}$. The rank for off-diagonal approximation is 10, which is quite accurate for the Merton kernel we considered. The author observed that for $2^{17}\times 2^{17}$ matrices, the dense LU will throw \texttt{OutOfMemory} error. The codes are implemented using \texttt{julia}. 
+In this section, we show the efficiency of the arithmetic operations using the $\mathcal{H}$-matrix in 1D. In the experiment, the minimum block size is either 64 or 32. The matrix sizes tested are $2^5, 2^6, \ldots, 2^{17}$. The maximum block size for $2^n\times 2^n$ matrices is $2^{n-3}\times 2^{n-3}$. The rank for off-diagonal approximation is 10, which is quite accurate for the Merton kernel we considered. The author observed that for $2^{17}\times 2^{17}$ matrices, the dense LU will throw \texttt{OutOfMemory} error. 
 
 
 We divide the interval $[-1,1]$ into $2^n$ equal length intervals, $h=\frac{1}{2^{n-1}}$. Consider the following kernel function for the construction of $\mathcal{H}$-matrix
@@ -1036,7 +1050,7 @@ In \cref{fig:compress}, the left figure shows the compression ratio of the $\mat
 \begin{equation}
 \texttt{CompressRatio}=\frac{\#\texttt{Matrix Entries Stored}}{\#\texttt{Full Matrix Entries}}
 \end{equation}
-compress ratio gives us an estimate of the efficiency of the $\mathcal{H}$-matrix storage. Small compress ratios for large matrices is critical for large scale problems. On the right hand size, we show that number of full subblocks and low-rank subblocks as $N$ grows. The linear growth is easily read off the figure. 
+compress ratio gives us an estimate of the efficiency of the $\mathcal{H}$-matrix storage. Small compress ratios for large matrices is critical for large scale problems. On the right hand size, we show that number of full sub-blocks and low-rank sub-blocks as $N$ grows. The linear growth is easily read off the figure. 
 
 \begin{figure}[htpb]
 \centering
@@ -1055,19 +1069,19 @@ compress ratio gives us an estimate of the efficiency of the $\mathcal{H}$-matri
 \begin{figure}[htpb]
 \centering
 \scalebox{0.6}{\input{figures/icme_matvec.pgf}}
-\caption{Matrix vector production is also much more efficient using the $\mathcal{H}$-matrices than using the dense matrix. It has the asymptotic complexity rate slightly above $\mathcal{O}(N)$, compared to $\mathcal{O}(N^2)$ for dense matrices.}
+\caption{Matrix vector production is also much more efficient using the $\mathcal{H}$-matrices than using the dense matrix. It has the asymptotic complexity rate slightly above $\mathcal{O}(N)$, compared to $\mathcal{O}(N^2)$ for dense matrices. }
 \label{fig:matvec}
 \end{figure}
 
 
 \paragraph{LU Decomposition}
 
-We have already shown that the storage and construction complexity is $\mathcal{O}(N)$ in \cref{fig:construction}. In \cref{fig:lu} we also show that the LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$. Note the $\mathcal{H}$-LU decomposition is carried out using high accuracy and can serve as a direct solver for linear systems. We need to point out that although the $\mathcal{H}$-LU tends to beat dense LU in terms of time consumption for large scale problems, the constant in the asymptotic rate $\mathcal{O}(N)$ is still large, which is well-known in literatures. Also, since we have fixed ranks, the practical time consumption is not optimal and has a higher asymptotic rate than the linear one. 
+We have already shown that the storage and construction complexity is $\mathcal{O}(N)$ in \cref{fig:construction}. In \cref{fig:lu} we also show that the LU decomposition is also much more efficient using the $\mathcal{H}$-matrices. We see that the $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$. Note the $\mathcal{H}$-LU decomposition is carried out using high accuracy and can serve as a direct solver for linear systems. We need to point out that although the $\mathcal{H}$-LU tends to beat dense LU in terms of time consumption for large scale problems, the constant in the asymptotic rate $\mathcal{O}(N)$ is still large, which is well-known in literatures. Also, since we have used a fixed rank strategy, the practical time consumption is not optimal and has a higher asymptotic rate than the linear one. 
 
 \begin{figure}[htpb]
 \centering
 \scalebox{0.6}{\input{figures/icme_lu.pgf}}
-\caption{LU decomposition of $\mathcal{H}$-LU and the dense LU. The $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$.}
+\caption{LU decomposition of $\mathcal{H}$-LU and the dense LU. The $\mathcal{H}$-LU has better asymptotic complexity than the dense LU, which has complexity $\mathcal{O}(N^3)$. Since we have used a fixed rank strategy, the practical time consumption is not optimal and has a higher asymptotic rate than the linear one.}
 \label{fig:lu}
 \end{figure}
 
@@ -1100,7 +1114,7 @@ We use the rank $r=5$. A typical $\mathcal{H}$-matrix is shown in \cref{fig:2d}.
 \begin{figure}[H] % \usepackage{float}
 \centering
 \includegraphics[width=0.5\textwidth,keepaspectratio]{figures/2D}
-\caption{A typical $\mathcal{H}$-matrix in 2D constructed from \cref{equ:k}.}
+\caption{A typical $\mathcal{H}$-matrix in 2D constructed from \cref{equ:k}. The blue and green blocks represent low rank blocks while the yellow blocks represent dense blocks.}
 \label{fig:2d}
 \end{figure}
 
@@ -1109,7 +1123,7 @@ We perform the same comparison as that in the last section. The $\mathcal{H}$-ma
 \begin{figure}[htpb]
 \centering
 \scalebox{0.6}{\input{figures/dense.pgf}}
-\caption{Comparison of construction time, matrix vector multiplication time, LU decomposition, and solving for both dense matrices as well as $\mathcal{H}$-matrices. The $\mathcal{H}$-matrix technique has better asymptotic rate than that of the dense matrices in terms of time consumption. The green dashed line shows the theoretical complexity asymptotic rate for dense matrices.}
+\caption{Comparison of construction time, matrix vector multiplication time, LU decomposition, and solving for both dense matrices as well as $\mathcal{H}$-matrices. The $\mathcal{H}$-matrix technique has better asymptotic rate than that of the dense matrices in terms of time consumption. The green dashed line shows the theoretical complexity asymptotic rate for dense matrices. We stopped at 65536$\times$65536 since the memory is insufficient for the direct method.}
 \label{fig:solve}
 \end{figure}
 
@@ -1118,14 +1132,14 @@ We perform the same comparison as that in the last section. The $\mathcal{H}$-ma
 
 In this section, we consider solving the model problem using $\mathcal{H}$-matrix and full matrix. We use a large rank $5$ for the kernel function and therefore the $\mathcal{H}$ matrix as well as its LU decomposition are very accurate. Thus, we do not need iterative solvers. Instead we can directly do triangular solve given the LU decomposition at each iteration. Another choice is to use the LU decomposed matrix as preconditioners, which we will not pursue here.  
 
-\Cref{fig:s} shows the computational cost as well as the storage cost for both $\mathcal{H}$-matrix and the full matrix. We see that both in terms of time and storage complexity $\mathcal{H}$-matrix has advantage over full matrices.
+\Cref{fig:s} shows the computational cost as well as the storage cost for both $\mathcal{H}$-matrix and the full matrix. The cost includes matrix construction, LU factorization, and $1000$ time step iterations. We see that both in terms of time and storage complexity $\mathcal{H}$-matrix has advantage over full matrices.
 
 \begin{figure}[htpb]
 \centering
-\scalebox{0.3}{\input{figures/s1.pgf}}~
-\scalebox{0.3}{\input{figures/s2.pgf}}
+\scalebox{0.4}{\input{figures/s1.pgf}}~
+\scalebox{0.4}{\input{figures/s2.pgf}}
 
-\caption{Time and storage complexity for $\mathcal{H}$-matrix and full matrix. Both in terms of time and storage complexity $\mathcal{H}$-matrix has advantage over full matrices for large scale problems.}
+\caption{Time and storage complexity for $\mathcal{H}$-matrix and full matrix. Both in terms of time and storage complexity $\mathcal{H}$-matrix has advantage over full matrices for large scale problems. The cost includes matrix construction, LU factorization, and $1000$ time step iterations.}
 \label{fig:s}
 \end{figure}
 
@@ -1163,9 +1177,9 @@ which can be evaluated using FFT for uniform grids $x_i$.
 
 \subsection{Singular and Slow Decaying L\'evy Measure}
 
-Finally, we consider the case where $\nu(y)$ grows to infinity at $y=0$ and has heavy tail. The case is quite challenging and extensively studied by the community nowadays. For simplicity, we will consider the specific case where $n(\bx) = \frac{C_{d, s}}{|\bx|^{d+2s}}$, i.e., the fractional Laplacian. Fortunately we can compute  the analytical nonlocal derivative or gradient for some functions. 
+Finally, we consider the case where $\nu(y)$ grows to infinity at $y=0$ and has heavy tail. The case is quite challenging and extensively studied by the community nowadays. For simplicity, we will consider the specific case where $\nu(\bx) = \frac{C_{d, s}}{|\bx|^{d+2s}}$, i.e., the fractional Laplacian. Fortunately we can compute  the analytical nonlocal derivative or gradient for some functions. 
 
-For the first example, we consider $u(x)=\exp(-x^2)$ in 1D. Then we have
+For the first example, we consider $u(x)=\exp(-x^2)$ in 1D. Then we have~\cite{huang2016finite}
 \begin{equation}\label{equ:u0}
 	(-\Delta)^s u(0) = 2^{2s}\Gamma\left( \frac{1+2s}{2} \right)/\sqrt{\pi}
 \end{equation}
@@ -1202,9 +1216,9 @@ Note that $u(x)$ is not smooth across the boundary. In fact, it only belongs to 
 \label{fig:fig6}
 \end{figure}
 
-Finally, we also consider the computation of $(-\Delta)^ u(\bx)$ in 2D, where
+Finally, we also consider the computation of $(-\Delta)^ u(\bx)$ in 2D, where~\cite{huang2016finite}
 \begin{equation}
-	u(\bx) = \frac{1}{2^{2s}\Gamma(1+s)^2} ((1-|\bx|^2)^s_+
+	u(\bx) = \frac{1}{2^{2s}\Gamma(1+s)^2} (1-|\bx|^2)^s_+
 \end{equation}
 
 The analytically result is known for $|\bx|\leq 1$, which is
@@ -1226,13 +1240,18 @@ These numerical examples demonstrates that the numerical scheme also works for $
 
 \section{Conclusion}
 
-In this paper, we presented the $\mathcal{H}$-matrix solver for the convection diffusion equation driven by the L\'evy process. We consider both semi-heavy L\'evy measure $\nu(y)<\infty$ as well as the challenging case $\nu(y)\rightarrow 0$, $y\rightarrow 0$, and $\nu(y)$ decays only algebraically. Particularly, when $\nu(y) = \frac{c_{1,s}}{|y|^{1+2s}}$, we recover the so-called fractional Laplacian operator $(-\Delta)^s u(x) =\mathrm{r.v.} \int_{\RR} (u(x+y)-u(x))\nu(y)dy$. In the case $\nu(y)$ is smooth for large $y$, the corresponding coefficient matrices in the explicit or implicit scheme can be efficiently represented by $\mathcal{H}$-matrix. We implemented $\mathcal{H}$-LU and use it as a preconditioner or a direct solver for the convection diffusion equation. Numerical methods demonstrate that the $\mathcal{H}$-matrix is highly efficient compared to the dense matrices for these tasks. 
+In this paper, we presented the $\mathcal{H}$-matrix solver for the convection diffusion equation driven by the L\'evy process. We consider both semi-heavy L\'evy measure $\nu(y)<\infty$ as well as the challenging case $\nu(y)\rightarrow 0$, $y\rightarrow 0$, and $\nu(y)$ decays only algebraically. Particularly, when $\nu(y) = \frac{c_{1,s}}{|y|^{1+2s}}$, we recover the so-called fractional Laplacian operator $(-\Delta)^s u(x) =\mathrm{p.v.} \int_{\RR} (u(x+y)-u(x))\nu(y)dy$. In the case $\nu(y)$ is smooth for large $y$, the corresponding coefficient matrices in the explicit or implicit scheme can be efficiently represented by $\mathcal{H}$-matrix. We implemented $\mathcal{H}$-LU and use it as a preconditioner or a direct solver for the convection diffusion equation. Numerical methods demonstrate that the $\mathcal{H}$-matrix is highly efficient compared to the dense matrices for these tasks. 
 
 The algorithms proposed in this paper can also be easily generalized to higher dimensions. To demonstrate, we also present the two dimensional cases in this paper, which also shows advantage over direct methods, especially for large scale problems. 
 
 The convection diffusion equation, or other counterparts driven by L\'evy process is challenging due to the non-locality of the jump diffusion. This will lead to dense coefficients matrices which makes computation prohibitable for large scale problems. However, the main finding in this paper shows that by adopting the well-established $\mathcal{H}$-matrix technique, large scale simulation becomes possible and efficient. It could be a first-hand method under researcher's consideration.    
 
+The code for the paper is publicly available via
+\begin{center}
+	\url{https://github.com/kailaix/hmat}
+\end{center}
+
 \section*{\refname}
-\bibliographystyle{unsrt}
+\bibliographystyle{mybib}
 \bibliography{levy.bib}
 \end{document}

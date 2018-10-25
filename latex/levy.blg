@@ -1,29 +1,29 @@
 This is BibTeX, Version 0.99d (TeX Live 2017)
 Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
-The top-level auxiliary file: /Users/kailaix/Desktop/hmat/latex/levy.aux
-The style file: unsrt.bst
+The top-level auxiliary file: /Users/kailaix/Box/Reserch-Shared/KailaiXu/Paper-Levy/levy.aux
+The style file: mybib.bst
 Database file #1: levy.bib.bib
 Warning--empty journal in yang2008construction
 You've used 41 entries,
-            1791 wiz_defined-function locations,
-            687 strings with 10276 characters,
-and the built_in function-call counts, 8334 in all, are:
+            1814 wiz_defined-function locations,
+            692 strings with 10338 characters,
+and the built_in function-call counts, 8509 in all, are:
 = -- 743
 > -- 356
 < -- 4
 + -- 137
 - -- 96
-* -- 537
+* -- 607
 := -- 1364
 add.period$ -- 123
 call.type$ -- 41
-change.case$ -- 36
+change.case$ -- 1
 chr.to.int$ -- 0
 cite$ -- 42
-duplicate$ -- 375
-empty$ -- 827
+duplicate$ -- 410
+empty$ -- 862
 format.name$ -- 96
-if$ -- 1826
+if$ -- 1861
 int.to.chr$ -- 0
 int.to.str$ -- 41
 missing$ -- 45
@@ -36,7 +36,7 @@ quote$ -- 0
 skip$ -- 147
 stack$ -- 0
 substring$ -- 513
-swap$ -- 57
+swap$ -- 92
 text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0

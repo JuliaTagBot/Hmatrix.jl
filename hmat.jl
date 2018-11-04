@@ -17,6 +17,7 @@ if !@isdefined Hmat
         is_rkmatrix::Bool = false
         is_fullmatrix::Bool = false
         is_hmat::Bool = false
+        is_transposed::Bool = false
         m::Int = 0
         n::Int = 0
         children::Array{Hmat} = Array{Hmat}([])
@@ -443,6 +444,7 @@ function getu(A, unitdiag)
 end
 
 function transpose!(a::Hmat)
+    a.is_transposed = !a.is_transposed
     a.m, a.n = a.n, a.m
     if a.is_rkmatrix
         a.A, a.B = a.B, a.A
@@ -498,32 +500,32 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
             hmat_trisolve!(a.children[2,2], b.children[2,2], islower, unitdiag, permutation)
         elseif a.is_hmat && b.is_fullmatrix
             H = Hmat()
-            hmat_copy!(H, a)
-            to_fmat!(H)
-            # if length(a.C)>0
-            #     H.C = a.C
-            # else
-                
-            #     hmat_copy!(H, a)
-            #     to_fmat!(H)
-            #     a.C = H.C
-            # end
+            if length(a.CC)>0
+                if a.is_transposed
+                    H.C = a.CC'
+                else
+                    H.C = a.CC
+                end
+            else
+                hmat_copy!(H, a)
+                to_fmat!(H)
+                a.CC = copy(H.C)
+            end
             hmat_trisolve!(H, b, islower, unitdiag, permutation)
             error("Never used")
         elseif a.is_hmat && b.is_rkmatrix
             H = Hmat()
-            hmat_copy!(H, a)
-            to_fmat!(H)
-            # if length(a.CC)>0
-            #     # hmat_copy!(H, a)
-            #     # to_fmat!(H)
-            #     # println(norm(H.C-a.CC))
-            #     H.C = a.CC
-            # else
-            #     hmat_copy!(H, a)
-            #     to_fmat!(H)
-            #     a.CC = copy(H.C)
-            # end
+            if length(a.CC)>0
+                if a.is_transposed
+                    H.C = a.CC'
+                else
+                    H.C = a.CC
+                end
+            else
+                hmat_copy!(H, a)
+                to_fmat!(H)
+                a.CC = H.C
+            end
             if permutation && length(a.P)>0
                 b.A = b.A[a.P,:]
             end

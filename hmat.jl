@@ -94,7 +94,6 @@ function info(H::Hmat)
     return dmat, rkmat, level, compress_ratio/H.m/H.n
 end
 
-
 function fmat(A::Array{Float64})
     H = Hmat()
     H.is_fullmatrix = true
@@ -108,8 +107,8 @@ function rkmat(A, B)
     H.is_rkmatrix = true
     m = size(A,1)
     n = size(B,1)
-    H.A = copy(A)
-    H.B = copy(B)
+    H.A = A
+    H.B = B
     return H
 end
 
@@ -198,7 +197,20 @@ function hmat_add!( a, b, scalar = 1.0)
         to_fmat!(a)
         hmat_add!(a, b, scalar)
     elseif a.is_hmat && b.is_rkmatrix
-        hmat_full_add!(a, b.A*b.B', scalar)
+        # hmat_full_add!(a, b.A*b.B', scalar) # costly step
+        
+        m = a.children[1,1].m
+        n = a.children[1,1].n
+        @views begin
+            C11 = rkmat(b.A[1:m,:], b.B[1:n,:])
+            C21 = rkmat(b.A[m+1:end,:], b.B[1:n,:])
+            C12 = rkmat(b.A[1:m,:], b.B[n+1:end,:])
+            C22 = rkmat(b.A[m+1:end,:], b.B[n+1:end,:])
+        end
+        hmat_add!(a.children[1,1], C11, scalar)
+        hmat_add!(a.children[2,1], C21, scalar)
+        hmat_add!(a.children[1,2], C12, scalar)
+        hmat_add!(a.children[2,2], C22, scalar)
     elseif a.is_hmat && b.is_hmat
         for i = 1:2
             for j = 1:2
@@ -464,6 +476,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 b.C = b.C[a.P,:]
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
+            error("Never used")
         elseif a.is_fullmatrix && b.is_rkmatrix
             if permutation && length(a.P)>0
                 b.A = b.A[a.P,:]
@@ -472,6 +485,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 return
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.A)
+            # println("**333")
         elseif a.is_fullmatrix && b.is_hmat
             error("This is never used")
         elseif a.is_hmat && b.is_hmat
@@ -486,6 +500,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
             hmat_copy!(H, a)
             to_fmat!(H)
             hmat_trisolve!(H, b, islower, unitdiag, permutation)
+            error("Never used")
         elseif a.is_hmat && b.is_rkmatrix
             H = Hmat()
             hmat_copy!(H, a)
@@ -494,6 +509,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 b.A = b.A[a.P,:]
             end
             LAPACK.trtrs!('L', 'N', cc, H.C, b.A)
+            # println("**222")
         end
     else
         transpose!(a)
@@ -517,7 +533,7 @@ function LinearAlgebra.:lu!(H::Hmat)
         hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, true)
         hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)
         hh = H.children[2,1]*H.children[1,2]
-        hmat_add!(H.children[2,2], hh, -1.0)
+        hmat_add!(H.children[2,2], hh, -1.0) # costly
         lu!(H.children[2,2])
     end
 end

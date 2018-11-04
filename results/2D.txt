@@ -23,3 +23,8 @@ MatCon:  Hmat:45.581285, Full:1683.682994      Error=5.90468e-07
 MatVec:  Hmat:0.430215, Full:0.704173      Error=6.85672e-05
 LU    :  Hmat:1125.756808, Full:951.126462              
 Solve :  Hmat:0.789764, Full:3.730649      Error=0.00255415
+======= 262144x262144 ========
+MatCon:  Hmat:270.388230
+MatVec:  Hmat:1.441322
+LU    :  Hmat:53099.631718
+Solve :  Hmat:71.634998

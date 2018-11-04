@@ -92,6 +92,7 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3); print
         end
     end
     t1 = @timed hA = construct1D_low_rank(nf, alpha, beta, h, 1, 2^n, minBlock, maxBlock)
+    # t1 = @timed hA = construct1D(test_kerfun, -2^(n-1), 2^(n-1)-1, minBlock, 5, maxBlock)
     y = rand(2^n)
 
     t4 = @timed begin
@@ -123,7 +124,7 @@ function profile_hmat_only(n=10, h=2/2^10, minBlock=64, maxBlock=2^(10-3); print
     end
     
     # println(tos)
-
+    # reset_timer!(tos)
 end
 
 function batch_profile(minBlock=64, offset = 2)

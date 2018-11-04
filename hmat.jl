@@ -12,6 +12,7 @@ if !@isdefined Hmat
         A::Array{Float64} = Array{Float64}([])
         B::Array{Float64} = Array{Float64}([])
         C::Array{Float64} = Array{Float64}([])
+        CC::Array{Float64} = Array{Float64}([])
         P::Array{Int64} = Array{Int64}([])
         is_rkmatrix::Bool = false
         is_fullmatrix::Bool = false
@@ -476,7 +477,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
                 b.C = b.C[a.P,:]
             end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
-            error("Never used")
+            # error("Never used")
         elseif a.is_fullmatrix && b.is_rkmatrix
             if permutation && length(a.P)>0
                 b.A = b.A[a.P,:]
@@ -499,17 +500,34 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
             H = Hmat()
             hmat_copy!(H, a)
             to_fmat!(H)
+            # if length(a.C)>0
+            #     H.C = a.C
+            # else
+                
+            #     hmat_copy!(H, a)
+            #     to_fmat!(H)
+            #     a.C = H.C
+            # end
             hmat_trisolve!(H, b, islower, unitdiag, permutation)
             error("Never used")
         elseif a.is_hmat && b.is_rkmatrix
             H = Hmat()
             hmat_copy!(H, a)
             to_fmat!(H)
+            # if length(a.CC)>0
+            #     # hmat_copy!(H, a)
+            #     # to_fmat!(H)
+            #     # println(norm(H.C-a.CC))
+            #     H.C = a.CC
+            # else
+            #     hmat_copy!(H, a)
+            #     to_fmat!(H)
+            #     a.CC = copy(H.C)
+            # end
             if permutation && length(a.P)>0
                 b.A = b.A[a.P,:]
             end
             LAPACK.trtrs!('L', 'N', cc, H.C, b.A)
-            # println("**222")
         end
     else
         transpose!(a)

@@ -414,7 +414,7 @@ function go()
     for n = 10:14
         # profile_lu2(9+n, 16*M, 1e-3, 8,  512)
         # profile_lu2(2^n, 32, 1e-3, 8,  512)
-        profile_lu2(2^n, 64, 1e-3, 32,  2^(n-3), fast=false)
+        profile_lu2(2^n, 64, 1e-3, 5,  2^(n-3), fast=false)
     end
 
 end

@@ -2,19 +2,32 @@ include("hmat.jl")
 using Random
 
 ############### Compression ##################
-function construct_hmat(A, Nleaf, Erank, Rrank, MaxBlock=64)
-    function helper(H, A)
+# A -- dense matrix
+# Nleaf -- leaf size , recommended 64
+# eps -- rank truncate accuracy , recommended 1e-6
+# Rrank -- maximum rank to be a low rank matrix
+# MaxBlock -- largest block size, if -1, we split the matrix into 4 pieces
+function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::Int64, MaxBlock::Int64)
+    if MaxBlock == -1
+        MaxBlock = Int(round(size(A,1)/4))
+    end
+    function helper(H, A, dtype)
         H.m, H.n = size(A,1), size(A, 2)
+
+        # if block size > MaxBlock, go to next level
         if size(A,1)>MaxBlock
             k = Rrank
         else
             U,S,V = svd(A)
-            k = rank_truncate(S,Erank)
+            k = rank_truncate(S,eps)
+            # println("Rank Matrix: ($(H.m), $(H.n)) $k $Rrank")
         end
-        if k < Rrank
+
+        if k < Rrank && dtype == 0
             H.is_rkmatrix = true
             H.A = U[:,1:k]
             H.B = V[:,1:k] * diagm(0=>S[1:k])
+            
         elseif size(A,1)<=Nleaf
             H.is_fullmatrix = true
             H.C = copy(A)
@@ -24,19 +37,42 @@ function construct_hmat(A, Nleaf, Erank, Rrank, MaxBlock=64)
                                     Hmat() Hmat()])
             n = Int(round.(size(A,1)/2))
             m = Int(round.(size(A,2)/2))
+
+            if dtype==0
+                dtype1 = 0
+                dtype2 = 0
+                dtype3 = 0
+                dtype4 = 0
+            elseif dtype==1
+                dtype1 = 1
+                dtype2 = 2
+                dtype3 = 3
+                dtype4 = 1
+            elseif dtype==2
+                dtype1 = 0
+                dtype2 = 0
+                dtype3 = 2
+                dtype4 = 0
+            else
+                dtype1 = 0
+                dtype2 = 3
+                dtype3 = 0
+                dtype4 = 0
+            end
+
             @views begin
-                helper(H.children[1,1], A[1:n, 1:m])
-                helper(H.children[1,2], A[1:n, m+1:end])
-                helper(H.children[2,1], A[n+1:end, 1:m])
-                helper(H.children[2,2], A[n+1:end, m+1:end])
+                helper(H.children[1,1], A[1:n, 1:m], dtype1)
+                helper(H.children[1,2], A[1:n, m+1:end], dtype2)
+                helper(H.children[2,1], A[n+1:end, 1:m], dtype3)
+                helper(H.children[2,2], A[n+1:end, m+1:end], dtype4)
             end
         end
         # consistency(H)
     end
-
+    dtype = 1
     H = Hmat()
     Ac = copy(A)
-    helper(H, Ac)
+    helper(H, Ac, dtype)
     return H
 end
 

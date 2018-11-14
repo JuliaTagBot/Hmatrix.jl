@@ -1,6 +1,6 @@
 include("hmat.jl")
-include("hconstruct.jl")
-include("hexample.jl")
+# include("hconstruct.jl")
+# include("hexample.jl")
 
 using PyCall
 using IterativeSolvers
@@ -14,35 +14,53 @@ using IterativeSolvers
 
 function pygmres(A, x, op=nothing)
     N = length(x)
-    lo = ssl.LinearOperator((N, N), matvec=A)
+    # convert A
+    if typeof(A)==Array{Float64}|| typeof(A)==Hmat
+        lo = ssl.LinearOperator((N, N), matvec=x->A*x)
+    else
+        lo = ssl.LinearOperator((N, N), matvec=A)
+    end
+
+    # make LinearOperator
     if op==nothing
         Mop = ssl.LinearOperator((N, N), matvec=x->x)
     else
         Mop = ssl.LinearOperator((N, N), matvec=op)
     end
+
+    # solve
     y = ssl.gmres(lo, x, M = Mop)[1]
     return y
 end
 
-function pygmres_mat_callback(rk)
+function pycallback(rk)
     global cnt
-    cnt += 1
+    push!(err, norm(rk))
 end
 
-function pygmres_mat(A, x, op=nothing)
-    global cnt
-    cnt = 0
+function pygmres_with_call_back(A, x, op=nothing)
+    global err
+    err = []
     N = length(x)
-    lo = ssl.LinearOperator((N, N), matvec=A)
+    # convert A
+    if typeof(A)==Array{Float64} || typeof(A)==Hmat
+        lo = ssl.LinearOperator((N, N), matvec=x->A*x)
+    else
+        lo = ssl.LinearOperator((N, N), matvec=A)
+    end
+
+    # make LinearOperator
     if op==nothing
         Mop = ssl.LinearOperator((N, N), matvec=x->x)
     else
         Mop = ssl.LinearOperator((N, N), matvec=op)
     end
-    y = ssl.gmres(lo, x, callback=PyCall.jlfun2pyfun(pygmres_mat_callback),M = Mop)[1]
-    return y, cnt
+    # solve
+    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop)[1]
+    return y, Array{Float64}(err)
 end
 
+#=
 function iterative_hmat(n=10, minN=16, eps=1e-6, maxR=8, maxN = 256)
     println("=======================================================")
     println("n=$(2^n), minN=$minN, maxN=$maxN, eps=$eps, maxR=$maxR")
@@ -83,3 +101,4 @@ function batch_iterative_hmat()
         iterative_hmat(9+n, 16*M, 1e-5, 8,  512)
     end
 end
+=#

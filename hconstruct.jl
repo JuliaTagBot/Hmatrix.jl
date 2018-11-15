@@ -20,14 +20,13 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
         else
             U,S,V = svd(A)
             k = rank_truncate(S,eps)
-            # println("Rank Matrix: ($(H.m), $(H.n)) $k $Rrank")
+            println("Rank Matrix: ($(H.m), $(H.n)) $k $Rrank")
         end
 
-        if k < Rrank && dtype == 0
+        if k <= Rrank && dtype == 0
             H.is_rkmatrix = true
             H.A = U[:,1:k]
             H.B = V[:,1:k] * diagm(0=>S[1:k])
-            
         elseif size(A,1)<=Nleaf
             H.is_fullmatrix = true
             H.C = copy(A)
@@ -35,8 +34,8 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
             H.is_hmat = true
             H.children = Array{Hmat}([Hmat() Hmat()
                                     Hmat() Hmat()])
-            n = Int(round.(size(A,1)/2))
-            m = Int(round.(size(A,2)/2))
+            n = div(size(A,1),2)
+            m = div(size(A,2),2)
 
             if dtype==0
                 dtype1 = 0

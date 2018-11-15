@@ -15,7 +15,7 @@ using IterativeSolvers
 function pygmres(A, x, op=nothing)
     N = length(x)
     # convert A
-    if typeof(A)==Array{Float64}|| typeof(A)==Hmat
+    if typeof(A)==Array{Float64,2}|| typeof(A)==Hmat
         lo = ssl.LinearOperator((N, N), matvec=x->A*x)
     else
         lo = ssl.LinearOperator((N, N), matvec=A)
@@ -35,15 +35,20 @@ end
 
 function pycallback(rk)
     global cnt
+    global err
+    println("Iteration $cnt, Error = $(err[end])")
     push!(err, norm(rk))
+    cnt += 1
 end
 
 function pygmres_with_call_back(A, x, op=nothing)
     global err
+    global cnt
+    cnt = 0
     err = []
     N = length(x)
     # convert A
-    if typeof(A)==Array{Float64} || typeof(A)==Hmat
+    if typeof(A)==Array{Float64,2} || typeof(A)==Hmat
         lo = ssl.LinearOperator((N, N), matvec=x->A*x)
     else
         lo = ssl.LinearOperator((N, N), matvec=A)

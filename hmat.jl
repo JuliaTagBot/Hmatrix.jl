@@ -152,10 +152,7 @@ function compress(C, eps=1e-6, N = nothing)
 end
 
 function svdtrunc(A1, B1, A2, B2)
-    # C = A1*B1' + A2*B2'
-    # return compress(C, 1e-6, Inf)
-    # println("$(size(A1)), $(size(A2)),$(size(B1)), $(size(B2))")
-    if prod(size(A1))==0 || prod(size(A2))==0
+    if prod(size(A1))==0 || prod(size(A2))==0 || prod(size(B1))==0 || prod(size(B2))==0
         return A1, B1
     end
     FA = qr([A1 A2])
@@ -185,11 +182,12 @@ function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar, eps=1e-6)
         a.A, a.B = compress(C, eps)
     elseif a.is_hmat
         m = a.children[1,1].m
+        n = a.children[1,1].n
         @views begin
-            hmat_full_add!(a.children[1,1], b[1:m,1:m],scalar, eps)
-            hmat_full_add!(a.children[1,2], b[1:m,m+1:end],scalar, eps)
-            hmat_full_add!(a.children[2,1], b[m+1:end,1:m],scalar, eps)
-            hmat_full_add!(a.children[2,2], b[m+1:end,m+1:end],scalar, eps)
+            hmat_full_add!(a.children[1,1], b[1:m,1:n],scalar, eps)
+            hmat_full_add!(a.children[1,2], b[1:m,n+1:end],scalar, eps)
+            hmat_full_add!(a.children[2,1], b[m+1:end,1:n],scalar, eps)
+            hmat_full_add!(a.children[2,2], b[m+1:end,n+1:end],scalar, eps)
         end
     else
         error("Should not be here")
@@ -254,7 +252,10 @@ function full_mat_mul(a::Array{Float64, 2}, b::Hmat)
         m, n = b.children[1,1].m, b.children[1,1].n
         p, q = b.m - m, b.n - n
         H.is_hmat = true
-        m0 = div(size(a,1),2)
+        # m0 = div(size(a,1),2)
+
+        m0 = calc_m(size(a,1), 64)
+
         H.children = Array{Hmat}([Hmat(m=m0, n=n) Hmat(m=m0, n=q)
                                     Hmat(m=size(a,1)-m0, n=n) Hmat(m=size(a,1)-m0, n=q)])
         a11 = a[1:m0, 1:m]
@@ -287,7 +288,10 @@ function mat_full_mul(a::Hmat, b::Array{Float64, 2})
         m, n = a.children[1,1].m, a.children[1,1].n
         p, q = a.m - m, a.n - n
         H.is_hmat = true
-        m0 = div(size(b,2),2)
+        # m0 = div(size(b,2),2)
+
+        m0 = calc_m(size(b,2), 64)
+
         H.children = Array{Hmat}([Hmat(m=m,n=m0) Hmat(m=m,n=size(b,2)-m0)
                                     Hmat(m=p,n=m0) Hmat(m=p,n=size(b,2)-m0)])
         b11 = b[1:n, 1:m0]
@@ -497,7 +501,7 @@ end
 
 
 # Solve AX = B and store the result into B
-function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
+function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag)
     if a.is_rkmatrix
         error("A should not be a low-rank matrix")
     end
@@ -510,15 +514,9 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
 
     if islower
         if a.is_fullmatrix && b.is_fullmatrix
-            if permutation && length(a.P)>0
-                b.C = b.C[a.P,:]
-            end
             LAPACK.trtrs!('L', 'N', cc, a.C, b.C)
             # error("Never used")
         elseif a.is_fullmatrix && b.is_rkmatrix
-            if permutation && length(a.P)>0
-                b.A = b.A[a.P,:]
-            end
             if size(b.A,1)==0
                 return
             end
@@ -529,49 +527,46 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, permutation)
         elseif a.is_hmat && b.is_hmat
             a11, a12, a21, a22 = a.children[1,1], a.children[1,2],a.children[2,1],a.children[2,2]
             b11, b12, b21, b22 = b.children[1,1], b.children[1,2],b.children[2,1],b.children[2,2]
-            hmat_trisolve!(a11, b11, islower, unitdiag, permutation)
-            hmat_trisolve!(a11, b12, islower, unitdiag, permutation)
-            hmat_add!(b.children[2,1], a.children[2,1]*b.children[1,1], -1.0)
-            hmat_add!(b.children[2,2], a.children[2,1]*b.children[1,2], -1.0)
-            hmat_trisolve!(a.children[2,2], b.children[2,1], islower, unitdiag, permutation)
-            hmat_trisolve!(a.children[2,2], b.children[2,2], islower, unitdiag, permutation)
+            hmat_trisolve!(a11, b11, islower, unitdiag)
+            hmat_trisolve!(a11, b12, islower, unitdiag)
+            hmat_add!(b21, a21*b11, -1.0)
+            hmat_add!(b22, a21*b12, -1.0)
+            hmat_trisolve!(a22, b21, islower, unitdiag)
+            hmat_trisolve!(a22, b22, islower, unitdiag)
         elseif a.is_hmat && b.is_fullmatrix
             H = Hmat()
-            if length(a.CC)>0
-                if a.is_transposed
-                    H.C = a.CC'
-                else
-                    H.C = a.CC
-                end
-            else
+            # if length(a.CC)>0
+            #     if a.is_transposed
+            #         H.C = a.CC'
+            #     else
+            #         H.C = a.CC
+            #     end
+            # else
                 hmat_copy!(H, a)
                 to_fmat!(H)
-                a.CC = copy(H.C)
-            end
-            hmat_trisolve!(H, b, islower, unitdiag, permutation)
+                # a.CC = copy(H.C)
+            # end
+            hmat_trisolve!(H, b, islower, unitdiag)
             # error("Never used")
         elseif a.is_hmat && b.is_rkmatrix
             H = Hmat()
-            if length(a.CC)>0
-                if a.is_transposed
-                    H.C = a.CC'
-                else
-                    H.C = a.CC
-                end
-            else
+            # if length(a.CC)>0
+            #     if a.is_transposed
+            #         H.C = a.CC'
+            #     else
+            #         H.C = a.CC
+            #     end
+            # else
                 hmat_copy!(H, a)
                 to_fmat!(H)
-                a.CC = H.C
-            end
-            if permutation && length(a.P)>0
-                b.A = b.A[a.P,:]
-            end
+            #     a.CC = H.C
+            # end
             LAPACK.trtrs!('L', 'N', cc, H.C, b.A)
         end
     else
         transpose!(a)
         transpose!(b)
-        hmat_trisolve!(a, b, true, unitdiag, permutation)
+        hmat_trisolve!(a, b, true, unitdiag)
         transpose!(a)
         transpose!(b)
     end
@@ -601,72 +596,35 @@ function LinearAlgebra.:lu!(H::Hmat)
     end
 
     if H.is_fullmatrix
-        # println("Factorizing...")
-        # C = copy(H.C)
-        # printmat(H.C)
-        F = lu!(H.C)
+        F = lu!(H.C, Val{false}())
         H.P = F.p
-        # printmat(LowerTriangular(H.C) - F.L)
-        # printmat(UpperTriangular(H.C) - F.U)
     else
-        # G = to_fmat(H)
-        # m = H.children[1,1].m
-        # A = G[1:m,1:m]
-        # B = G[1:m,m+1:end]
-        # C = G[m+1:end, 1:m]
-        # D = G[m+1:end, m+1:end]
+        C = to_fmat(H)
+        lu!(C, Val{false}())
 
-        # F = lu!(A)
-        # # B = F.L\B[F.p,:]
-        # # C = C/F.U
-        # # D = D-C*B
-        
-        
-        
-        # # C = C[DF.p,:]   # you need to permutate!
-        
-        # # P = [F.p;DF.p .+ m]
-        
         lu!(H.children[1,1])
 
-        # H0 = [A B
-        #     C D]
-        # H1 = to_fmat(H)
-        # println("+++ $(maximum(abs.(H1-H0)))")
-        # # D0 = to_fmat(H.children[2,2])
-        # printmat(H0)
-        # printmat(H1)
-        # printmat(H1-H0)
+        # D = to_fmat(H.children[1,1])
+        # println("*** $(maximum(abs.(C-D)))")
 
         permute_hmat!(H.children[1,2], H.children[1,1].P)
-        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, false)      # islower, unitdiag, permutation
 
-        # H1 = to_fmat(H)
-        # println("*** $(maximum(abs.(H1-H0)))")
 
-        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, false)   # islower, unitdiag, permutation
+        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true)      # islower, unitdiag, permutation
+
+        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false)   # islower, unitdiag, permutation
 
         hh = H.children[2,1]*H.children[1,2]
         hmat_add!(H.children[2,2], hh, -1.0) # costly
 
         
-
         lu!(H.children[2,2])
-                
-        # DF = lu!(D)
-        # H0 = [A B
-        #     C D]
-        # H1 = to_fmat(H)
-        # println("*** $(maximum(abs.(H1-H0)))")
-        # println(DF.p)
-        # println(H.children[2,2].P)
-        # D0 = to_fmat(H.children[2,2])
-        # printmat(D0)
-        # printmat(D)
-        
 
         permute_hmat!(H.children[2,1], H.children[2,2].P)
         H.P = [H.children[1,1].P; H.children[2,2].P .+ H.children[1,1].m]
+
+        D = to_fmat(H)
+        println("*** $(maximum(abs.(C-D)))")
 
         # G0 = to_fmat(H)
         

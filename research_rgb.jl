@@ -2,21 +2,21 @@ using LinearAlgebra
 include("hconstruct.jl")
 
 function generate_hmat()
-    N = 2048
+    N = 3019
     A = zeros(N, N)
     for i = 1:size(A,1)
         for j = 1:size(A,1)
             if i==j
-                A[i,j] = 1
+                A[i,j] = 10
             else
                 A[i,j] = -1/(abs(j-i))
             end
         end
     end
     Nleaf = 64
-    eps = 1e-12
-    Rrank = 5
-    MaxBlock = Int(size(A,1)/4)
+    eps = 1e-5
+    Rrank = 10
+    MaxBlock = div(size(A,1),2)
     H = construct_hmat(A, Nleaf, eps, Rrank, MaxBlock)
     verify_lu_error(H)
     verify_matvec_error(H, A)

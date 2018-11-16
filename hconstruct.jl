@@ -15,8 +15,8 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
         H.m, H.n = size(A,1), size(A, 2)
 
         # if block size > MaxBlock, go to next level
-        if size(A,1)>MaxBlock
-            k = Rrank
+        if size(A,1)>MaxBlock || size(A,2)>MaxBlock
+            k = Rrank+1
         else
             U,S,V = svd(A)
             k = rank_truncate(S,eps)
@@ -27,15 +27,30 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
             H.is_rkmatrix = true
             H.A = U[:,1:k]
             H.B = V[:,1:k] * diagm(0=>S[1:k])
-        elseif size(A,1)<=Nleaf
+        elseif size(A,1)<=Nleaf || size(A,2)<=Nleaf
             H.is_fullmatrix = true
             H.C = copy(A)
         else
             H.is_hmat = true
             H.children = Array{Hmat}([Hmat() Hmat()
                                     Hmat() Hmat()])
-            n = div(size(A,1),2)
-            m = div(size(A,2),2)
+        
+            if mod(size(A,1), 2Nleaf)==0
+                n = div(size(A,1),2)
+            else
+                p = div(size(A,1),2Nleaf)
+                n = Nleaf * (p+1)
+            end
+
+            if mod(size(A,2), 2Nleaf)==0
+                m = div(size(A,2),2)
+            else
+                p = div(size(A,2),2Nleaf)
+                m = Nleaf * (p+1)
+            end
+
+            println("($m, $n), size= $(size(H))")
+
 
             if dtype==0
                 dtype1 = 0
@@ -73,6 +88,19 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
     Ac = copy(A)
     helper(H, Ac, dtype)
     return H
+end
+
+function calc_m(N, Nleaf)
+    if mod(N, 2Nleaf)==0
+        m = div(N,2)
+    else
+        p = div(N, 2Nleaf)
+        m = Nleaf * (p+1)
+    end
+    if m > N
+        m = N
+    end
+    return m
 end
 
 ############### Construction from Kernel Functions ##################

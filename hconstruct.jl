@@ -20,7 +20,7 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
         else
             U,S,V = svd(A)
             k = rank_truncate(S,eps)
-            println("Rank Matrix: ($(H.m), $(H.n)) $k $Rrank")
+            # println("Rank Matrix: ($(H.m), $(H.n)) $k $Rrank")
         end
 
         if k <= Rrank && dtype == 0
@@ -49,7 +49,7 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
                 m = Nleaf * (p+1)
             end
 
-            println("($m, $n), size= $(size(H))")
+            # println("($m, $n), size= $(size(H))")
 
 
             if dtype==0

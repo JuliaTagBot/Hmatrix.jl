@@ -2,7 +2,7 @@ using LinearAlgebra
 include("hconstruct.jl")
 
 function generate_hmat()
-    N = 3019
+    N = 3000
     A = zeros(N, N)
     for i = 1:size(A,1)
         for j = 1:size(A,1)

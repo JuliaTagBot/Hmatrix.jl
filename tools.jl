@@ -36,8 +36,8 @@ end
 function pycallback(rk)
     global cnt
     global err
-    println("Iteration $cnt, Error = $(err[end])")
     push!(err, norm(rk))
+    println("Iteration $cnt, Error = $(err[end])")
     cnt += 1
 end
 

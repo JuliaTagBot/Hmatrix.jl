@@ -7,6 +7,21 @@ using Profile
 using LowRankApprox
 using TimerOutputs
 
+if !@isdefined Cluster
+    @with_kw mutable struct Cluster
+        X::Array{Float64}
+        P::Array{Int64}
+        left::Cluster
+        right::Cluster
+        m::Int64 = 0
+        n::Int64 = 0
+        N::Int64 = 0
+        isleaf::Bool = false
+        s::Int64
+        e::Int64 # start and end index after permutation
+    end
+end
+
 if !@isdefined Hmat
     @with_kw mutable struct Hmat
         A::Array{Float64} = Array{Float64}([])
@@ -19,6 +34,8 @@ if !@isdefined Hmat
         m::Int = 0
         n::Int = 0
         children::Array{Hmat} = Array{Hmat}([])
+        s::Cluster
+        t::Cluster
     end
 end
 
@@ -95,18 +112,15 @@ function info(H::Hmat)
 end
 
 function fmat(A::Array{Float64})
-    H = Hmat()
+    H = Hmat(m = size(A,1), n = size(A,2))
     H.is_fullmatrix = true
-    H.m, H.n = size(A)
     H.C = copy(A)
     return H
 end
 
 function rkmat(A, B)
-    H = Hmat()
+    H = Hmat(m = size(A,1), n = size(B,1))
     H.is_rkmatrix = true
-    m = size(A,1)
-    n = size(B,1)
     H.A = A
     H.B = B
     return H
@@ -153,6 +167,10 @@ function svdtrunc(A1, B1, A2, B2)
     if prod(size(A1))==0 || prod(size(A2))==0 || prod(size(B1))==0 || prod(size(B2))==0
         return A1, B1
     end
+    # println(size(B1), size(B2))
+    @assert size(A1, 1)==size(A2, 1)
+    @assert size(B1, 1)==size(B2, 1)
+    
     FA = qr([A1 A2])
     FB = qr([B1 B2])
     U,S,V = svd(FA.R*FB.R')
@@ -164,7 +182,8 @@ end
 
 
 function rkmat_add!(a, b, scalar, method=1)
-
+    @assert a.m==b.m 
+    @assert a.n==b.n
     if method==1
         a.A, a.B = svdtrunc(a.A, a.B, scalar*b.A, b.B)
     else
@@ -193,6 +212,8 @@ function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar, eps=1e-6)
 end
 # Perform a = a + b
 function hmat_add!( a, b, scalar = 1.0, eps=1e-6)
+    @assert a.m==b.m
+    @assert a.n==b.n
     if b.is_fullmatrix
         hmat_full_add!(a, b.C, scalar, eps)
     elseif a.is_fullmatrix && b.is_rkmatrix
@@ -201,8 +222,7 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-6)
         end
         a.C += scalar * b.A * b.B'
     elseif a.is_fullmatrix && b.is_hmat
-        c = Hmat()
-        hmat_copy!(c, b)
+        c = copy(b)
         to_fmat!(c)
         a.C += c.C
     elseif a.is_rkmatrix && b.is_rkmatrix
@@ -215,12 +235,19 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-6)
         
         m = a.children[1,1].m
         n = a.children[1,1].n
+        # @assert a.children[2,1].m+a.children[1,1].m==a.m
+        # @assert a.children[1,2].n+a.children[1,1].n==a.n
         @views begin
             C11 = rkmat(b.A[1:m,:], b.B[1:n,:])
             C21 = rkmat(b.A[m+1:end,:], b.B[1:n,:])
             C12 = rkmat(b.A[1:m,:], b.B[n+1:end,:])
             C22 = rkmat(b.A[m+1:end,:], b.B[n+1:end,:])
         end
+        # println(m)
+        # println(size(b))
+        # println(size(b.A))
+        # println("***",size(C11))
+        # println("***",size(a.children[1,1]))
         hmat_add!(a.children[1,1], C11, scalar, eps)
         hmat_add!(a.children[2,1], C21, scalar, eps)
         hmat_add!(a.children[1,2], C12, scalar, eps)
@@ -228,8 +255,11 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-6)
     elseif a.is_hmat && b.is_hmat
         for i = 1:2
             for j = 1:2
-                # println(size(a.children[i,j]))
-                # println(size(b.children[i,j]))
+                println(i,j,size(a.children[i,j]), size(b.children[i,j]))
+            end
+        end
+        for i = 1:2
+            for j = 1:2
                 hmat_add!(a.children[i,j], b.children[i,j], scalar, eps)
             end
         end
@@ -237,8 +267,8 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-6)
 end
 
 function Base.:+(a::Hmat, b::Hmat)
-    c = Hmat()
-    hmat_copy!(c, a)
+    @assert a.m==b.m && a.n==b.n
+    c = copy(a)
     hmat_add!( c, b, 1.0)
     return c
 end
@@ -339,25 +369,31 @@ function Base.:*(a::Hmat, b::Hmat)
         H.B = b.B * (b.A' * a.B)
     elseif a.is_rkmatrix && b.is_hmat
         H.is_rkmatrix = true
-        c = Hmat()
-        hmat_copy!(c, b)
+        c = copy(b)
         to_fmat!(c)
         H.A = a.A
         H.B =  c.C' * a.B
     
     elseif a.is_hmat && b.is_rkmatrix
         H.is_rkmatrix = true
-        c = Hmat()
-        hmat_copy!(c, a)
+        c = copy(a)
         to_fmat!(c)
         H.A = c*b.A
         H.B = b.B
     elseif a.is_hmat && b.is_hmat
         H.is_hmat = true
-        H.children = Array{Hmat}([Hmat() Hmat()
-                                 Hmat() Hmat()])
+        m = a.children[1,1].m
+        n = b.children[1,1].n
+        m1 = a.m - m
+        n1 = b.n - n
+        H.children = Array{Hmat}([Hmat(m=m,n=n) Hmat(m=m,n=n1)
+                                 Hmat(m=m1,n=n) Hmat(m=m1,n=n1)])
         for i = 1:2
             for j = 1:2
+                # println("***", size(a.children[i,1]), size(b.children[1,j]), size(a.children[i,2]), size(b.children[2,j]))
+                # println("+++", size(a.children[i,1]*b.children[1,j]))
+                # println("+++", size(a.children[i,2]*b.children[2,j]))
+                # println("---", size(a.children[i,1]*b.children[1,j] + a.children[i,2]*b.children[2,j]))
                 H.children[i,j] = a.children[i,1]*b.children[1,j] + a.children[i,2]*b.children[2,j]
             end
         end
@@ -445,8 +481,7 @@ function to_fmat!(A::Hmat)
 end
 
 function to_fmat(A::Hmat)
-    B = Hmat()
-    hmat_copy!(B, A)
+    B = copy( A)
     to_fmat!(B)
     return B.C
 end
@@ -542,14 +577,12 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag)
             hmat_trisolve!(a22, b21, islower, unitdiag)
             hmat_trisolve!(a22, b22, islower, unitdiag)
         elseif a.is_hmat && b.is_fullmatrix
-            H = Hmat()
-            hmat_copy!(H, a)
+            H = copy(a)
             to_fmat!(H)
             hmat_trisolve!(H, b, islower, unitdiag)
             # error("Never used")
         elseif a.is_hmat && b.is_rkmatrix
-            H = Hmat()
-            hmat_copy!(H, a)
+            H = copy(a)
             to_fmat!(H)
             LAPACK.trtrs!('L', 'N', cc, H.C, b.A)
         end
@@ -586,11 +619,12 @@ function LinearAlgebra.:lu!(H::Hmat)
     end
 
     if H.is_fullmatrix
+        # printmat((H.C))
         F = lu!(H.C, Val{true}())
         H.P = F.p
     else
-        C = to_fmat(H)
-        lu!(C, Val{true}())
+        # C = to_fmat(H)
+        # lu!(C, Val{true}())
 
         lu!(H.children[1,1])
 
@@ -710,8 +744,7 @@ function plot_hmat(H)
 end
 
 function PyPlot.:matshow(H::Hmat)
-    P = Hmat()
-    hmat_copy!(P, H)
+    P = copy(H)
     C = color_level(P)
     matshow(C)
 end
@@ -728,8 +761,7 @@ function printmat(H)
 end
 
 function check_if_equal(H::Hmat, C::Array{Float64})
-    G = Hmat()
-    hmat_copy!(G, H)
+    G = (H)
     to_fmat!(G)
     println("Error = $(norm(C-G.C,2)/norm(C,2))")
 end

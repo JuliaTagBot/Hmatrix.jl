@@ -2,7 +2,7 @@ using LinearAlgebra
 include("hconstruct.jl")
 
 function generate_hmat()
-    N = 3000
+    N = 3700
     A = zeros(N, N)
     for i = 1:size(A,1)
         for j = 1:size(A,1)
@@ -21,6 +21,34 @@ function generate_hmat()
     verify_lu_error(H)
     verify_matvec_error(H, A)
     verify_matrix_error(H,A)
+    return A, H
+end
+
+function generate_hmat2()
+    N = 30
+    A = zeros(N^2, N^2)
+    for i1 = 1:N
+        for i2 = 1:N
+            for j1 = 1:N
+                for j2 = 1:N
+                    if i1==j1 && i2==j2
+                        A[i1+(i2-1)*N,j1+(j2-1)*N] = 10000
+                    else
+                        A[i1+(i2-1)*N,j1+(j2-1)*N] = -1/(abs(j1-i1)^2+ abs(j2-i2)^2)^0.5
+                    end
+                end
+            end
+        end
+    end
+    Nleaf = 5
+    eps = 1e-3
+    Rrank = 3
+    MaxBlock = div(size(A,1),4)
+    H = construct_hmat(A, Nleaf, eps, Rrank, MaxBlock)
+    
+    verify_matvec_error(H, A)
+    verify_matrix_error(H,A)
+    verify_lu_error(H)
     return A, H
 end
 

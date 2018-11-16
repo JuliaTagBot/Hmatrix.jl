@@ -20,16 +20,18 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
         else
             U,S,V = svd(A)
             k = rank_truncate(S,eps)
-            # println("Rank Matrix: ($(H.m), $(H.n)) $k $Rrank")
+            println("Rank Matrix: ($(H.m), $(H.n)) $k $Rrank")
         end
 
         if k <= Rrank && dtype == 0
             H.is_rkmatrix = true
             H.A = U[:,1:k]
             H.B = V[:,1:k] * diagm(0=>S[1:k])
+            # println(" => LR")
         elseif size(A,1)<=Nleaf || size(A,2)<=Nleaf
             H.is_fullmatrix = true
             H.C = copy(A)
+            # println(" => F")
         else
             H.is_hmat = true
             H.children = Array{Hmat}([Hmat() Hmat()
@@ -90,18 +92,11 @@ function construct_hmat(A::Array{Float64}, Nleaf::Int64, eps::Float64, Rrank::In
     return H
 end
 
-function calc_m(N, Nleaf)
-    if mod(N, 2Nleaf)==0
-        m = div(N,2)
-    else
-        p = div(N, 2Nleaf)
-        m = Nleaf * (p+1)
-    end
-    if m > N
-        m = N
-    end
-    return m
-end
+############### BlackBox FMM ##################
+# routine for blackbox fmm
+
+
+
 
 ############### Construction from Kernel Functions ##################
 function admissible1(s1, e1, s2, e2)

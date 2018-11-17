@@ -231,7 +231,7 @@ function hmat_from_children(h11, h12, h21, h22, s, t)
     return H
 end
 
-function rank_truncate(S, eps=1e-6)
+function rank_truncate(S, eps=1e-10)
     if length(S)==0
         return 0
     end
@@ -243,7 +243,7 @@ function rank_truncate(S, eps=1e-6)
     end
 end
 
-function compress(C, eps=1e-6, N = nothing)
+function compress(C, eps=1e-10, N = nothing)
     if sum(abs.(C))≈0
         A = zeros(size(C,1),1)
         B = zeros(size(C,2),1)
@@ -267,7 +267,7 @@ function compress(C, eps=1e-6, N = nothing)
     return A, B
 end
 
-function svdtrunc(A1, B1, A2, B2, eps=1e-6)
+function svdtrunc(A1, B1, A2, B2, eps=1e-10)
     if size(A2,2)==0 
         @assert size(B2,2)==0
         return A1, B1
@@ -288,7 +288,7 @@ function svdtrunc(A1, B1, A2, B2, eps=1e-6)
 end
 
 # TODO: more rank matrix addition algorithms
-function rkmat_add!(a, b, scalar, method=1, eps=1e-6)
+function rkmat_add!(a, b, scalar, method=1, eps=1e-10)
     if method==1
         a.A, a.B = svdtrunc(a.A, a.B, scalar*b.A, b.B, eps)
     else
@@ -490,20 +490,45 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag)
             error("This is never used")
         elseif a.is_hmat && b.is_hmat
             # println("HH")
+            # p = getl(to_fmat(a), unitdiag)\to_fmat(b)
             a11, a12, a21, a22 = a.children[1,1], a.children[1,2],a.children[2,1],a.children[2,2]
             b11, b12, b21, b22 = b.children[1,1], b.children[1,2],b.children[2,1],b.children[2,2]
+            
+            # p = getl(to_fmat(a11), unitdiag)\to_fmat(b11)
             hmat_trisolve!(a11, b11, islower, unitdiag)
+            # println("*** I Error = ", pointwise_error(p, to_fmat(b11)))
+
+            # p = getl(to_fmat(a11), unitdiag)\to_fmat(b12)
             hmat_trisolve!(a11, b12, islower, unitdiag)
+            # println("*** II Error = ", pointwise_error(p, to_fmat(b12)))
+
+            # p = to_fmat(b21)-to_fmat(a21)*to_fmat(b11)
             hmat_sub_mul!(b21, a21, b11)
+            # println("*** III Error = ", pointwise_error(p, to_fmat(b21)))
+
+            # p = to_fmat(b22)-to_fmat(a21)*to_fmat(b12)
             hmat_sub_mul!(b22, a21, b12)
+            # println("*** IV Error = ", pointwise_error(p, to_fmat(b22)))
+
+            # p = getl(to_fmat(a22), unitdiag)\to_fmat(b21)
             hmat_trisolve!(a22, b21, islower, unitdiag)
+            # println("*** V Error = ", pointwise_error(p, to_fmat(b21)))
+
+            # p = getl(to_fmat(a22), unitdiag)\to_fmat(b22)
             hmat_trisolve!(a22, b22, islower, unitdiag)
+            # println("*** VI Error = ", pointwise_error(p, to_fmat(b22)))
+
+            # println("*** H Error = ", pointwise_error(p, to_fmat(b)))
         elseif a.is_hmat && b.is_fullmatrix
             # println("HF")
+            # p = getl(to_fmat(a), unitdiag)\b.C
             mat_full_solve(a, b.C, unitdiag)
+            # println("*** HF Error = ", pointwise_error(p, to_fmat(b)))
         elseif a.is_hmat && b.is_rkmatrix
             # println("FH")
+            # p = getl(to_fmat(a), unitdiag)\to_fmat(b)
             mat_full_solve(a, b.A, unitdiag)
+            # println("*** FH Error = ", pointwise_error(p, to_fmat(b)))
             # error("Not used")
         end
     else
@@ -539,7 +564,7 @@ function LinearAlgebra.:lu!(H::Hmat)
     end
 
     if H.is_fullmatrix
-        F = lu!(H.C, Val{false}())
+        F = lu!(H.C, Val{true}())
         H.P = F.p
     else
         # G = to_fmat(H)
@@ -556,16 +581,19 @@ function LinearAlgebra.:lu!(H::Hmat)
 
         # E = getl(to_fmat(H.children[1,1]), true)\to_fmat(H.children[1,2])
         hmat_trisolve!(H.children[1,1], H.children[1,2], true, true)      # islower, unitdiag
-        # println("Err-L", maximum(abs.(E-to_fmat(H.children[1,2]))))
+        # println("Err-L ", maximum(abs.(E-to_fmat(H.children[1,2]))))
+        # @assert maximum(abs.(E-to_fmat(H.children[1,2])))<1e-6
 
 
         # E = to_fmat(H.children[2,1])/getu(to_fmat(H.children[1,1]), false)
         hmat_trisolve!(H.children[1,1], H.children[2,1], false, false)   # islower, unitdiag
-        # println("Err-U", maximum(abs.(E-to_fmat(H.children[2,1]))))
+        # println("Err-U ", maximum(abs.(E-to_fmat(H.children[2,1]))))
+        # @assert maximum(abs.(E-to_fmat(H.children[2,1])))<1e-6
 
         # E = to_fmat(H.children[2,2]) - to_fmat(H.children[2,1])*to_fmat(H.children[1,2])
         hmat_sub_mul!(H.children[2,2], H.children[2,1], H.children[1,2])
-        # println("Err-E", maximum(abs.(E-to_fmat(H.children[2,2]))))
+        # println("Err-E ", maximum(abs.(E-to_fmat(H.children[2,2]))))
+        # @assert maximum(abs.(E-to_fmat(H.children[2,2])))<1e-6
 
         lu!(H.children[2,2])
         # print(H)
@@ -676,7 +704,7 @@ end
 
 function verify_matrix_error(H::Hmat, C::Array{Float64})
     G = to_fmat(H)
-    err = norm(G-C)/norm(C)
+    err = pointwise_error(G, C)
     println("Matrix Error = $err")
 end
 
@@ -688,7 +716,7 @@ function verify_matvec_error(H::Hmat, C::Array{Float64})
     println("Matvec Error = $err")
 end
 
-function verify_lu_error(HH::Hmat)
+function verify_lu_error(HH::Hmat; A = nothing)
     H = copy(HH)
     C = to_fmat(H)
     lu!(H)
@@ -698,11 +726,21 @@ function verify_lu_error(HH::Hmat)
     err = norm(x-y)/norm(x)
     # println("Permuation = $(H.P)")
     println("Solve Error = $err")
-
     to_fmat!(H)
     G = C[H.P,:] - (LowerTriangular(H.C)-diagm(0=>diag(H.C))+UniformScaling(1.0))*UpperTriangular(H.C)
-    println("LU Matrix Error = $(maximum(abs.(G)))")
+    println("LU Operator Error = $(maximum(abs.(G)))")
+
     
+    if A!=nothing
+        G = A[H.P,:] - (LowerTriangular(H.C)-diagm(0=>diag(H.C))+UniformScaling(1.0))*UpperTriangular(H.C)
+        println("LU Matrix Error = $(maximum(abs.(G)))")
+        x = rand(size(A,2))
+        b = A*x
+        y = H\b
+        err = norm(x-y)/norm(x)
+        # println("Permuation = $(H.P)")
+        println("Matrix Solve Error = $err")
+    end
     return G
 end
 
@@ -712,4 +750,12 @@ function check_err(HH::Hmat, C::Array{Float64})
     # println(H.P)
     G = C[H.P,:] - (LowerTriangular(H.C)-diagm(0=>diag(H.C))+UniformScaling(1.0))*UpperTriangular(H.C)
     println("Matrix Error = $(maximum(abs.(G)))")
+end
+
+function pointwise_error(A, B)
+    return maximum(abs.(A-B))
+end
+
+function rel_error(x::Array{Float64}, y::Array{Float64})
+    return norm(y-x)/norm(y)
 end

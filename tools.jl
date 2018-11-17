@@ -38,14 +38,19 @@ end
 function pycallback(rk)
     global cnt
     global err
+    global verbose_
     push!(err, norm(rk))
-    println("Iteration $cnt, Error = $(err[end])")
+    if verbose_
+        println("Iteration $cnt, Error = $(err[end])")
+    end
     cnt += 1
 end
 
-function pygmres_with_call_back(A, x, op=nothing)
+function pygmres_with_call_back(A, x, op=nothing, verbose=true)
     global err
     global cnt
+    global verbose_
+    verbose_ = verbose
     cnt = 0
     err = []
     N = length(x)
@@ -60,11 +65,35 @@ function pygmres_with_call_back(A, x, op=nothing)
     if op==nothing
         Mop = ssl.LinearOperator((N, N), matvec=x->x)
     else
-        Mop = ssl.LinearOperator((N, N), matvec=op)
+        
+        if typeof(op)==Array{Float64,2} || typeof(op)==Hmat
+            Mop = ssl.LinearOperator((N, N), matvec=x->op\x)
+        else
+            Mop = ssl.LinearOperator((N, N), matvec=op)
+        end
     end
     # solve
-    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop)[1]
+    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop, tol=1e-8)[1]
     return y, Array{Float64}(err)
+end
+
+function hprecond(Hpred_::Hmat, H::Union{Hmat, Array{Float64,2}}, A::Array{Float64})
+    Hpred = copy(Hpred_)
+    lu!(Hpred)
+    x = rand(size(A,1))
+    b = A*x
+    y2, err2 = pygmres_with_call_back(H, b, nothing, true)
+    y1, err1 = pygmres_with_call_back(H, b, Hpred, true)
+    
+    println("Error1 = ", rel_error(y1, x))
+    println("Error2 = ", rel_error(y2, x))
+    semilogy(err1,"o-",label="With Preconditioner")
+    semilogy(err2, "+-", label="Without Preconditioner")
+    legend()
+    xlabel("Iteration")
+    ylabel("Error")
+    savefig("Iter.png")
+    close("all")
 end
 
 #=

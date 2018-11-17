@@ -124,7 +124,7 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
                 # @assert k!=0
                 H.A = U[:,1:k]
                 H.B = V[:,1:k] * diagm(0=>S[1:k])
-                println("$(size(H)), $k, $Rrank => LR")
+                # println("$(size(H)), $k, $Rrank => LR")
             elseif method=="bbfmm"
                 H.A = U
                 H.B = V
@@ -175,7 +175,7 @@ function construct_hmat(A::Array{Float64}, c::Cluster, Nleaf::Int64, Rrank::Int6
             U,S,V = svd(M)
             k = rank_truncate(S, eps)
 
-            println("* $(size(M)), $k, $Rrank")
+            # println("* $(size(M)), $k, $Rrank")
             if k<=Rrank
                 H.is_rkmatrix = true
             else
@@ -244,4 +244,94 @@ function uniform_cluster(l, N)
         C = [C;l-sum(C)]
     end
     return C
+end
+
+
+# ============= testing ================
+function test_matvec()
+    f = (x,y)->1/(norm(x-y)+0.1)
+    X = rand(2000,2);
+    MaxBlock = div(size(X,1),4)
+    println("*** Test begin")
+    for eps = [1e-1, 1e-3, 1e-6, 1e-8]
+        println("eps = $eps")
+        H,P=construct_hmat(f, X, 64, 5, eps, MaxBlock);
+        Y = X[P,:];
+        A = kernel_full(f, Y, Y)
+        println("Matrix Error = ", pointwise_error(A, to_fmat(H)))
+        x = rand(size(X,1))
+        y1 = A*x
+        y2 = H*x
+        println("Matrix Vector Error = ", rel_error(y2, y1))
+
+        # matshow(H)
+        # savefig("H.png")
+        # close("all")
+        if eps<=1e-2
+            HH = to_fmat(H)
+            lu!(H)
+            y1 = H\x
+            y2 = A\x
+            println("Solve Error = ", rel_error(y2, y1))
+            C = to_fmat(H)
+            G = A[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
+            println("LU Matrix Error = $(maximum(abs.(G)))")
+
+            G = HH[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
+            println("LU Operator Error = $(maximum(abs.(G)))")
+        end
+    end
+    println("====================")
+    for N = [1, 3, 5, 10, 20, 30]
+        println("N = $N")
+        H,P=construct_hmat(f, X, 64, N, 1e-3, MaxBlock);
+        Y = X[P,:];
+        A = kernel_full(f, Y, Y)
+        println("Matrix Error = ", pointwise_error(A, to_fmat(H)))
+        x = rand(size(X,1))
+        y1 = A*x
+        y2 = H*x
+        println("Matrix Vector Error = ", rel_error(y2, y1))
+
+        HH = to_fmat(H)
+        lu!(H)
+        y1 = H\x
+        y2 = A\x
+        println("Solve Error = ", rel_error(y2, y1))
+        C = to_fmat(H)
+        G = A[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
+        println("LU Matrix Error = $(maximum(abs.(G)))")
+
+        G = HH[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
+        println("LU Operator Error = $(maximum(abs.(G)))")
+    end
+
+
+end
+
+function test_single_case()
+    f = (x,y)->1/(norm(x-y)+0.1)
+    X = rand(10000,3);
+    MaxBlock = div(size(X,1),4)
+    println("*** Test begin")
+    eps = 1e-4
+    H,P=construct_hmat(f, X, 64, 5, eps, MaxBlock);
+    Y = X[P,:];
+    A = kernel_full(f, Y, Y)
+    println("Matrix Error = ", pointwise_error(A, to_fmat(H)))
+    x = rand(size(X,1))
+    y1 = A*x
+    y2 = H*x
+    println("Matrix Vector Error = ", rel_error(y2, y1))
+
+    matshow(H)
+    savefig("H.png")
+    close("all")
+    lu!(H)
+    y1 = H\x
+    y2 = A\x
+    println("Solve Error = ", rel_error(y2, y1))
+    C = to_fmat(H)
+    G = A[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
+    println("LU Matrix Error = $(maximum(abs.(G)))")
 end

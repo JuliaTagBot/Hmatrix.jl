@@ -1,16 +1,21 @@
-using Parameters
-using LinearAlgebra
-using PyPlot
-using Printf
-using FastGaussQuadrature
-# include("hmat.jl")
+# geometry.jl
+# This file contains the utilites for Cluster struct. It also contains basic functions to generate H-matrix
+@pyimport sklearn.cluster as cluster
 
 function bisect_cluster(X::Array{Float64})
     # code here
-    return Y1, P1, X2, P2
+    clf = cluster.KMeans(n_clusters=2, random_state=0)
+    clf[:fit](X)
+    L = clf[:labels_]
+    P1 = findall(L .== 0)
+    P2 = findall(L .== 1)
+    X1 = X[P1,:]
+    X2 = X[P2,:]
+    return X1, P1, X2, P2
 end
 
-function inverse_permutation(P::Int64)
+
+function inverse_permutation(P::AbstractArray{Int64})
     Q = copy(P)
     for i = 1:length(P)
         Q[P[i]] = i
@@ -25,6 +30,8 @@ function construct_cluster(X::Array{Float64}, Nleaf::Int64)
             return
         end
         X1, P1, X2, P2 = bisect_cluster(c.X)
+        P1 = c.P[P1]
+        P2 = c.P[P2]
         c.left = Cluster(X = X1, P = P1, N = length(P1), s = c.s, e = c.s+length(P1)-1)
         c.right = Cluster(X = X2, P = P2, N = length(P2), s = c.s+length(P1)-1, e = c.e)
         c.m = c.left.N
@@ -46,6 +53,7 @@ function construct_cluster(X::Array{Float64}, Nleaf::Int64)
     c = Cluster(X = X, P = collect(1:size(X,1)), N = size(X,1), s = 1, e = size(X,1))
     downward(c)
     upward(c)
+    return c
 end
 
 function kernel_full(f::Function, X::Array{Float64}, Y::Array{Float64})
@@ -81,7 +89,6 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
     c = construct_cluster(X, Nleaf)
     P = c.P
     h = Hmat()
-    A = A[P,P]
     function helper(H::Hmat, s::Cluster, t::Cluster)
         H.m = s.N
         H.n = t.N
@@ -117,6 +124,7 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
                 # @assert k!=0
                 H.A = U[:,1:k]
                 H.B = V[:,1:k] * diagm(0=>S[1:k])
+                println("$(size(H)), $k, $Rrank => LR")
             elseif method=="bbfmm"
                 H.A = U
                 H.B = V
@@ -134,8 +142,7 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
 
     end
     helper(h, c, c)
-    Q = inverse_permutation(P)
-    return h, P, Q
+    return h, P
 end
 
 function construct_hmat(A::Array{Float64}, c::Cluster, Nleaf::Int64, Rrank::Int64,

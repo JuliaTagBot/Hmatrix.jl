@@ -1,6 +1,8 @@
+# tools.jl
+# This file contains iterative solvers. 
+
 include("hmat.jl")
-# include("hconstruct.jl")
-# include("hexample.jl")
+
 
 using PyCall
 using IterativeSolvers

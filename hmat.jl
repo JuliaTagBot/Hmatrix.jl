@@ -1,3 +1,7 @@
+# hmat.jl
+# This file contains the utilites for H-matrix
+
+
 using Parameters
 using LinearAlgebra
 using PyPlot
@@ -5,9 +9,9 @@ using Printf
 using Statistics
 using Profile
 using LowRankApprox
+using FastGaussQuadrature
 using TimerOutputs
-include("geometry.jl")
-include("harithm.jl")
+using PyCall
 
 if !@isdefined Cluster
     @with_kw mutable struct Cluster
@@ -23,23 +27,6 @@ if !@isdefined Cluster
         e::Int64 = 0 # start and end index after permutation
     end
 end
-
-function Base.:print(c::Cluster)
-    current_level = [c]
-    while length(current_level)>0
-        println(join(["$(x.N)($(x.s),$(x.e))" for x in current_level], " "))
-        next_level = []
-        for n in current_level
-            if !n.isleaf 
-                push!(next_level, n.left)
-                push!(next_level, n.right)
-            end
-            current_level = next_level
-        end
-    end
-end
-
-
 
 if !@isdefined Hmat
     @with_kw mutable struct Hmat
@@ -58,9 +45,69 @@ if !@isdefined Hmat
     end
 end
 
+include("geometry.jl")
+include("harithm.jl")
+
+function Base.:print(c::Cluster)
+    current_level = [c]
+    while length(current_level)>0
+        println(join(["$(x.N)($(x.s),$(x.e))" for x in current_level], " "))
+        next_level = []
+        for n in current_level
+            if !n.isleaf 
+                push!(next_level, n.left)
+                push!(next_level, n.right)
+            end
+            current_level = next_level
+        end
+    end
+end
+
 function Base.:print(h::Hmat)
     G = to_fmat(h)
     printmat(G)
+end
+
+function PyPlot.:plot(c::Cluster)
+    
+    function helper(level)
+        clevel = 0
+        current_level = [c]
+        while clevel!=level && length(current_level)>0
+            next_level = []
+            for n in current_level
+                if !n.isleaf 
+                    push!(next_level, n.left)
+                    push!(next_level, n.right)
+                end
+                current_level = next_level
+            end
+            clevel += 1
+        end
+        if length(current_level)==0
+            return false
+        end
+        figure()
+        for c in current_level
+            if size(c.X,2)==1
+                scatter(c.X[:,1], ones(size(c.X,1)), marker = ".")
+            elseif size(c.X, 2)==2
+                scatter(c.X[:,1], c.X[:,2], marker = ".")
+            elseif size(c.X,2)==3
+                scatter3D(c.X[:,1], c.X[:,2], c.X[:,3], marker = ".")
+            end
+        end
+        title("Level = $level")
+        savefig("level$level.png")
+        close("all")
+        return true
+    end
+    flag = true
+    l = 0
+    while flag
+        flag = helper(l)
+        l += 1
+    end
 end
 
 # const tos = TimerOutput()

@@ -3,11 +3,19 @@ using LinearAlgebra
 using PyPlot
 using Printf
 using FastGaussQuadrature
-include("hmat.jl")
+# include("hmat.jl")
 
 function bisect_cluster(X::Array{Float64})
     # code here
     return Y1, P1, X2, P2
+end
+
+function inverse_permutation(P::Int64)
+    Q = copy(P)
+    for i = 1:length(P)
+        Q[P[i]] = i
+    end
+    return Q
 end
 
 function construct_cluster(X::Array{Float64}, Nleaf::Int64)
@@ -52,7 +60,7 @@ end
 
 function kernel_svd(f::Function, X::Array{Float64}, Y::Array{Float64}, eps::Float64)
     A = kernel_full(f, X, Y)
-    U,S,V = psvd(A)
+    U,S,V = svd(A)
     k = rank_truncate(S, eps)
     return k, U, S, V
 end
@@ -100,15 +108,13 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
                 err, U, V = kernel_expansion(f, X, Y, Rrank, eps)
                 # #TODO:if err ...
             end
-        else
-            error("Not Implemented yet")
         end
 
         if H.is_fullmatrix
             H.C = kernel_full(f, s.X, t.X)
         elseif H.is_rkmatrix
             if method=="svd"
-                @assert k!=0
+                # @assert k!=0
                 H.A = U[:,1:k]
                 H.B = V[:,1:k] * diagm(0=>S[1:k])
             elseif method=="bbfmm"
@@ -128,20 +134,28 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
 
     end
     helper(h, c, c)
-    return h, P
+    Q = inverse_permutation(P)
+    return h, P, Q
 end
 
-function construct_hmat(A::Array{Float64}, X::Array{Float64}, Nleaf::Int64, Rrank::Int64,
+function construct_hmat(A::Array{Float64}, c::Cluster, Nleaf::Int64, Rrank::Int64,
                 eps::Float64, MaxBlock::Int64)
-    c = construct_cluster(X, Nleaf)
+    if MaxBlock == -1
+        MaxBlock = Int(round(size(A,1)/4))
+    end
     P = c.P
+    if length(c.P)>0
+        A = A[P,P]
+    end
+
     h = Hmat()
-    A = A[P,P]
     function helper(H::Hmat, s::Cluster, t::Cluster)
         H.m = s.N
         H.n = t.N
         H.s = s
         H.t = t
+
+        # println(s.e-s.s+1, t.e-t.s+1)
 
         # Matrix Size
         if (H.m <= Nleaf || H.n <= Nleaf) || s.isleaf || t.isleaf
@@ -151,24 +165,24 @@ function construct_hmat(A::Array{Float64}, X::Array{Float64}, Nleaf::Int64, Rran
         else
             # Rank consideration
             M = A[s.s:s.e, t.s:t.e]
-            U,S,V = psvd(A)
+            U,S,V = svd(M)
             k = rank_truncate(S, eps)
 
+            println("* $(size(M)), $k, $Rrank")
             if k<=Rrank
                 H.is_rkmatrix = true
             else
                 H.is_hmat = true
             end
-        else
-            error("Not Implemented yet")
         end
 
         if H.is_fullmatrix
             H.C = A[s.s:s.e, t.s:t.e]
         elseif H.is_rkmatrix
-            @assert k!=0
+            # @assert k!=0
             H.A = U[:,1:k]
             H.B = V[:,1:k] * diagm(0=>S[1:k])
+            
         else
             H.children = Array{Hmat}([Hmat() Hmat()
                                     Hmat() Hmat()])
@@ -181,4 +195,46 @@ function construct_hmat(A::Array{Float64}, X::Array{Float64}, Nleaf::Int64, Rran
     end
     helper(h, c, c)
     return h, P
+end
+function construct_hmat(A::Array{Float64}, X::Array{Float64}, Nleaf::Int64, Rrank::Int64,
+                eps::Float64, MaxBlock::Int64)
+    c = construct_cluster(X, Nleaf)
+    return construct_hmat(A, c, Nleaf, Rrank, eps, MaxBlock)
+end
+
+
+function cluster_from_list(l)
+    function helper(cs)
+        if length(cs)==1
+            return cs[1]
+        end
+        next_list = []
+        
+        for i = 1:2:length(cs)-1
+            c1 = cs[i]
+            c2 = cs[i+1]
+            c = Cluster(m = c1.N, n = c2.N, left = c1, right = c2, N = c1.N + c2.N, isleaf = false, s = c1.s, e = c2.e)
+            push!(next_list, c)
+        end
+        if mod(length(cs),2)==1
+            push!(next_list, cs[end])
+        end
+        return helper(next_list)
+    end
+    cs = []
+    s = 1
+    for r in l
+        push!(cs, Cluster(N = r, isleaf = true, s = s, e = s+r-1))
+        s = s+r
+    end
+    return helper(cs)
+end
+
+function uniform_cluster(l, N)
+    n = div(l, N)
+    C = ones(Int, n)*N
+    if sum(C)<l
+        C = [C;l-sum(C)]
+    end
+    return C
 end

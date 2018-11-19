@@ -45,6 +45,8 @@ if !@isdefined Hmat
     end
 end
 
+
+
 include("geometry.jl")
 include("harithm.jl")
 
@@ -231,9 +233,8 @@ function hmat_from_children(h11, h12, h21, h22, s, t)
     return H
 end
 
-
-
-function svdtrunc(A1, B1, A2, B2, eps=1e-10)
+function rkmat_add!(a, b, scalar, method=1, eps=1e-10)
+    A1, B1, A2, B2 = a.A, a.B, scalar*b.A, b.B
     if size(A2,2)==0 
         @assert size(B2,2)==0
         return A1, B1
@@ -246,20 +247,14 @@ function svdtrunc(A1, B1, A2, B2, eps=1e-10)
     
     FA = qr([A1 A2])
     FB = qr([B1 B2])
-    U,S,V = svd(FA.R*FB.R')
-    k = rank_truncate(S, eps)
-    A = FA.Q * U[:,1:k] * diagm(0=>S[1:k])
-    B = FB.Q * V[:,1:k]
-    return A, B
-end
 
-# TODO: more rank matrix addition algorithms
-function rkmat_add!(a, b, scalar, method=1, eps=1e-10)
-    if method==1
-        a.A, a.B = svdtrunc(a.A, a.B, scalar*b.A, b.B, eps)
-    else
-        error("Method not defined!")
-    end
+    W = FA.R*FB.R'
+    U,V = compress(W, eps, "svd")
+    r = size(U,1)
+    A = FA.Q[:,1:r] * U
+    B = FB.Q[:,1:r] * V
+
+    a.A, a.B= A, B
 end
 
 function Base.:*(a::Hmat, v::AbstractArray{Float64})
@@ -394,12 +389,12 @@ end
 
 
 # # special function for computing c = c - a*b
-function hmat_sub_mul!(c::Hmat, a::Hmat, b::Hmat)
-    hmat_add!(c, a*b, -1.0)
+function hmat_sub_mul!(c::Hmat, a::Hmat, b::Hmat, eps)
+    hmat_add!(c, hmul(a, b, eps), -1.0, eps)
 end
 
 # solve a x = b where a is possibly a H-matrix. a is lower triangular. 
-function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag)
+function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag, eps)
     if a.is_rkmatrix
         error("A should not be a low-rank matrix")
     end
@@ -420,9 +415,10 @@ function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag)
         n = a11.m
         b1 = b[1:n,:]
         b2 = b[n+1:end, :]
-        mat_full_solve(a11, b1, unitdiag)
+        mat_full_solve(a11, b1, unitdiag, eps)
         b2 -= a21 * b1
-        mat_full_solve(a22, b2, unitdiag)
+        # hmat_sub_mul!(b2, a21, b1, eps)
+        mat_full_solve(a22, b2, unitdiag, eps)
         b[:] = [b1;b2]
         # println("Error = ", maximum(abs.(b-x)))
     end
@@ -430,7 +426,7 @@ end
 
 # Solve AX = B and store the result into B
 # A, B have been prepermuted and therefore this function should not worry about permutation
-function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag)
+function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, eps)
     # the coefficient matrix cannot be a low rank matrix,
     if a.is_rkmatrix
         error("A should not be a low-rank matrix")
@@ -461,46 +457,46 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag)
             b11, b12, b21, b22 = b.children[1,1], b.children[1,2],b.children[2,1],b.children[2,2]
             
             # p = getl(to_fmat(a11), unitdiag)\to_fmat(b11)
-            hmat_trisolve!(a11, b11, islower, unitdiag)
+            hmat_trisolve!(a11, b11, islower, unitdiag, eps)
             # println("*** I Error = ", pointwise_error(p, to_fmat(b11)))
 
             # p = getl(to_fmat(a11), unitdiag)\to_fmat(b12)
-            hmat_trisolve!(a11, b12, islower, unitdiag)
+            hmat_trisolve!(a11, b12, islower, unitdiag, eps)
             # println("*** II Error = ", pointwise_error(p, to_fmat(b12)))
 
             # p = to_fmat(b21)-to_fmat(a21)*to_fmat(b11)
-            hmat_sub_mul!(b21, a21, b11)
+            hmat_sub_mul!(b21, a21, b11, eps)
             # println("*** III Error = ", pointwise_error(p, to_fmat(b21)))
 
             # p = to_fmat(b22)-to_fmat(a21)*to_fmat(b12)
-            hmat_sub_mul!(b22, a21, b12)
+            hmat_sub_mul!(b22, a21, b12, eps)
             # println("*** IV Error = ", pointwise_error(p, to_fmat(b22)))
 
             # p = getl(to_fmat(a22), unitdiag)\to_fmat(b21)
-            hmat_trisolve!(a22, b21, islower, unitdiag)
+            hmat_trisolve!(a22, b21, islower, unitdiag, eps)
             # println("*** V Error = ", pointwise_error(p, to_fmat(b21)))
 
             # p = getl(to_fmat(a22), unitdiag)\to_fmat(b22)
-            hmat_trisolve!(a22, b22, islower, unitdiag)
+            hmat_trisolve!(a22, b22, islower, unitdiag, eps)
             # println("*** VI Error = ", pointwise_error(p, to_fmat(b22)))
 
             # println("*** H Error = ", pointwise_error(p, to_fmat(b)))
         elseif a.is_hmat && b.is_fullmatrix
             # println("HF")
             # p = getl(to_fmat(a), unitdiag)\b.C
-            mat_full_solve(a, b.C, unitdiag)
+            mat_full_solve(a, b.C, unitdiag, eps)
             # println("*** HF Error = ", pointwise_error(p, to_fmat(b)))
         elseif a.is_hmat && b.is_rkmatrix
             # println("FH")
             # p = getl(to_fmat(a), unitdiag)\to_fmat(b)
-            mat_full_solve(a, b.A, unitdiag)
+            mat_full_solve(a, b.A, unitdiag, eps)
             # println("*** FH Error = ", pointwise_error(p, to_fmat(b)))
             # error("Not used")
         end
     else
         transpose!(a)
         transpose!(b)
-        hmat_trisolve!(a, b, true, unitdiag)
+        hmat_trisolve!(a, b, true, unitdiag, eps)
         transpose!(a)
         transpose!(b)
     end
@@ -524,7 +520,7 @@ function permute_hmat!(H::Hmat, P::AbstractArray{Int64})
     end
 end
 
-function LinearAlgebra.:lu!(H::Hmat)
+function LinearAlgebra.:lu!(H::Hmat,eps=1e-10)
     if H.is_rkmatrix
         error("H should not be a low-rank matrix")
     end
@@ -536,7 +532,7 @@ function LinearAlgebra.:lu!(H::Hmat)
         # G = to_fmat(H)
         # lu!(G, Val{false}())
 
-        lu!(H.children[1,1])
+        lu!(H.children[1,1], eps)
         
         # lu!(G[1:H.children[1,1].m, 1:H.children[1,1].n])
         # GG = to_fmat(H)
@@ -546,22 +542,22 @@ function LinearAlgebra.:lu!(H::Hmat)
         # print(H)
 
         # E = getl(to_fmat(H.children[1,1]), true)\to_fmat(H.children[1,2])
-        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true)      # islower, unitdiag
+        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, eps)      # islower, unitdiag
         # println("Err-L ", maximum(abs.(E-to_fmat(H.children[1,2]))))
         # @assert maximum(abs.(E-to_fmat(H.children[1,2])))<1e-6
 
 
         # E = to_fmat(H.children[2,1])/getu(to_fmat(H.children[1,1]), false)
-        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false)   # islower, unitdiag
+        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, eps)   # islower, unitdiag
         # println("Err-U ", maximum(abs.(E-to_fmat(H.children[2,1]))))
         # @assert maximum(abs.(E-to_fmat(H.children[2,1])))<1e-6
 
         # E = to_fmat(H.children[2,2]) - to_fmat(H.children[2,1])*to_fmat(H.children[1,2])
-        hmat_sub_mul!(H.children[2,2], H.children[2,1], H.children[1,2])
+        hmat_sub_mul!(H.children[2,2], H.children[2,1], H.children[1,2], eps)
         # println("Err-E ", maximum(abs.(E-to_fmat(H.children[2,2]))))
         # @assert maximum(abs.(E-to_fmat(H.children[2,2])))<1e-6
 
-        lu!(H.children[2,2])
+        lu!(H.children[2,2], eps)
         # print(H)
 
         permute_hmat!(H.children[2,1], H.children[2,2].P)

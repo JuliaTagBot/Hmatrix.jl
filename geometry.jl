@@ -7,7 +7,7 @@ using LinearAlgebra
 function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
     U = zeros(size(A,1), Rrank)
     V = zeros(size(A,2), Rrank)
-    R = ccall((:aca_wrapper,"/Users/kailaix/Desktop/hmat/third-party/build/libaca.dylib"), Cint, (Ref{Cdouble}, Ref{Cdouble},
+    R = ccall((:aca_wrapper,pwd()*"/third-party/build/libaca.dylib"), Cint, (Ref{Cdouble}, Ref{Cdouble},
                 Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
     U = U[:,1:Rrank]
     V = V[:,1:Rrank]
@@ -354,7 +354,7 @@ function test_matvec()
     X = rand(2000,2);
     MaxBlock = div(size(X,1),4)
     println("*** Test begin")
-    for eps = [1e-1, 1e-3, 1e-6, 1e-8]
+    for eps = [ 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
         println("eps = $eps")
         H,P=construct_hmat(f, X, 64, 5, eps, MaxBlock);
         Y = X[P,:];
@@ -370,7 +370,7 @@ function test_matvec()
         # close("all")
         if eps<=1e-2
             HH = to_fmat(H)
-            lu!(H)
+            lu!(H, eps)
             y1 = H\x
             y2 = A\x
             println("Solve Error = ", rel_error(y2, y1))
@@ -395,7 +395,7 @@ function test_matvec()
         println("Matrix Vector Error = ", rel_error(y2, y1))
 
         HH = to_fmat(H)
-        lu!(H)
+        lu!(H, 1e-3)
         y1 = H\x
         y2 = A\x
         println("Solve Error = ", rel_error(y2, y1))

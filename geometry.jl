@@ -4,64 +4,23 @@ using PyCall
 using LinearAlgebra
 @pyimport sklearn.cluster as cluster
 
-function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
-    U = zeros(size(A,1), Rrank)
-    V = zeros(size(A,2), Rrank)
-    R = ccall((:aca_wrapper,pwd()*"/third-party/build/libaca.dylib"), Cint, (Ref{Cdouble}, Ref{Cdouble},
-                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
-    U = U[:,1:Rrank]
-    V = V[:,1:Rrank]
+function aca(A::Array{Float64}, eps::Float64)
+    U = zeros(size(A,1), size(A,2))
+    V = zeros(size(A,2), size(A,1))
+    R = ccall((:aca_wrapper,"/home/kailai/Desktop/hmat/third-party/build/libaca.so"), Cint, (Ref{Cdouble}, Ref{Cdouble},
+                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, 0)
+    U = U[:,1:R]
+    V = V[:,1:R]
     return U, V
 end
 
 # column pivoting RRQR
 function rrqr(A,tol)
-    m, n = size(A)
-    Q = zeros(m,n)
-    R = zeros(m,n)
-    rank = 0
-    ind = collect(1:n)
-    Acopy = copy(A)
-    
-    nrm = norm(A,2)
-    for r in 1:min(m,n)
-        cn = zeros(n,1)
-        for j=r:n
-            cn[j] = norm(A[:,j])
-        end
-        tau = maximum(cn)
-        if tau!=0
-            k = argmax(cn[:])
-        end
-        if k>r
-            tmp = ind[r]; ind[r] = ind[k]; ind[k] = tmp;
-            tmp = A[:,r]; A[:,r] = A[:,k]; A[:,k] = tmp;
-            tmp = R[1:r-1,r]; R[1:r-1,r] = R[1:r-1,k]; R[1:r-1,k] = tmp;
-        end
-        R[r,r] = tau
-        
-        #if (R[1,1]<=tol || R[r,r]/R[1,1]<=tol)
-        if (R[1,1]<=tol || norm(triu(A[r+1:end,r+1:end]))<=tol)
-        #if (R[1,1]<=tol || vecnorm(triu(A[r+1:end,r+1:end]))/nrm<=tol) # Golub van Loan section 5.5.7 eq 5.5.6
-            r -= 1
-            rank = r
-            break;
-        end
-        Q[:,r] = A[:,r]/R[r,r];
-        R[r,r+1:n] = Q[:,r]' * A[:,r+1:n]
-        A[:,r+1:n] = A[:,r+1:n] - Q[:,r]*R[r,r+1:n]'
-        rank = r
-    end
-    
-    if rank==0
-        Q = []
-        R = []
-    else
-        Q = Q[:,1:rank]
-        R = R[1:rank,:]
-    end
-    iind = inverse_permutation(ind)
-    return Q, R[:,iind]'
+    F = pqrfact(A, rtol = tol)
+    ip = inverse_permutation(F.p)
+    Q = F.Q
+    R = F.R[:,ip]'
+    return Q, R
 end
 
 
@@ -80,9 +39,10 @@ end
 # C is a full matrix
 # the function will try to compress C with given tolerance eps
 # Rrank is required when method = "aca"
-function compress(C, eps=1e-10, method="svd"; Rrank = nothing)
+function compress(C, eps=1e-10, method="aca")
+    # method = "rrqr"
     # if the matrix is a zero matrix, return zero vectors
-    if sum(abs.(C))≈0
+    if sum(abs.(C))<1e-5
         A = zeros(size(C,1),1)
         B = zeros(size(C,2),1)
         return A, B
@@ -101,9 +61,8 @@ function compress(C, eps=1e-10, method="svd"; Rrank = nothing)
         return A, B
     end
 
-    if method=="aca"
-        @assert !isa(Rrank, Nothing)
-        U,V = aca(C, eps,Rrank);
+    if method=="aca"             # more accurate
+        U,V = aca(C, eps);
         return U,V
     end
 
@@ -188,15 +147,6 @@ function kernel_svd(f::Function, X::Array{Float64}, Y::Array{Float64}, eps::Floa
     return k, U, S, V
 end
 
-#TODO:
-function kernel_bbfmm(f::Function, X::Array{Float64}, Y::Array{Float64}, Rrank::Int64, eps::Float64)
-    x, _ = gausschebyshev(Rrank)
-    # ...
-end
-
-#TODO:
-function kernel_mvd(f::Function, X::Array{Float64}, Y::Array{Float64}, Rrank::Int64, eps::Float64)
-end
 
 
 function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int64,
@@ -217,7 +167,7 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
             H.is_hmat = true
         else
             A = kernel_full(f, s.X, t.X)
-            U, V = compress(A, eps, method, Rrank=2*Rrank)
+            U, V = compress(A, eps, method)
             k = size(U,2)
             if k<=Rrank
                 H.is_rkmatrix = true

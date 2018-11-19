@@ -1,5 +1,7 @@
 # geometry.jl
 # This file contains the utilites for Cluster struct. It also contains basic functions to generate H-matrix
+using PyCall
+using LinearAlgebra
 @pyimport sklearn.cluster as cluster
 
 function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
@@ -11,6 +13,109 @@ function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
     V = V[:,1:Rrank]
     return U, V
 end
+
+# column pivoting RRQR
+function rrqr(A,tol)
+    m, n = size(A)
+    Q = zeros(m,n)
+    R = zeros(m,n)
+    rank = 0
+    ind = collect(1:n)
+    Acopy = copy(A)
+    
+    nrm = norm(A,2)
+    for r in 1:min(m,n)
+        cn = zeros(n,1)
+        for j=r:n
+            cn[j] = norm(A[:,j])
+        end
+        tau = maximum(cn)
+        if tau!=0
+            k = argmax(cn[:])
+        end
+        if k>r
+            tmp = ind[r]; ind[r] = ind[k]; ind[k] = tmp;
+            tmp = A[:,r]; A[:,r] = A[:,k]; A[:,k] = tmp;
+            tmp = R[1:r-1,r]; R[1:r-1,r] = R[1:r-1,k]; R[1:r-1,k] = tmp;
+        end
+        R[r,r] = tau
+        
+        #if (R[1,1]<=tol || R[r,r]/R[1,1]<=tol)
+        if (R[1,1]<=tol || norm(triu(A[r+1:end,r+1:end]))<=tol)
+        #if (R[1,1]<=tol || vecnorm(triu(A[r+1:end,r+1:end]))/nrm<=tol) # Golub van Loan section 5.5.7 eq 5.5.6
+            r -= 1
+            rank = r
+            break;
+        end
+        Q[:,r] = A[:,r]/R[r,r];
+        R[r,r+1:n] = Q[:,r]' * A[:,r+1:n]
+        A[:,r+1:n] = A[:,r+1:n] - Q[:,r]*R[r,r+1:n]'
+        rank = r
+    end
+    
+    if rank==0
+        Q = []
+        R = []
+    else
+        Q = Q[:,1:rank]
+        R = R[1:rank,:]
+    end
+    iind = inverse_permutation(ind)
+    return Q, R[:,iind]'
+end
+
+
+function rank_truncate(S, eps=1e-10)
+    if length(S)==0
+        return 0
+    end
+    k = findlast(S/S[1] .> eps)
+    if isa(k, Nothing)
+        return 0
+    else
+        return k
+    end
+end
+
+# C is a full matrix
+# the function will try to compress C with given tolerance eps
+# Rrank is required when method = "aca"
+function compress(C, eps=1e-10, method="svd"; Rrank = nothing)
+    # if the matrix is a zero matrix, return zero vectors
+    if sum(abs.(C))≈0
+        A = zeros(size(C,1),1)
+        B = zeros(size(C,2),1)
+        return A, B
+    end
+
+    if method=="svd"
+        if size(C,1)==size(C,2)
+            U,S,V = psvd(C)    # fast svd is availabel
+        else
+            U,S,V = svd(C)
+        end
+        k = findlast(S/S[1] .> eps)
+        @assert !isa(k, Nothing) # k should never be zero
+        A = U[:,1:k]
+        B = (diagm(0=>S[1:k])*V'[1:k,:])'
+        return A, B
+    end
+
+    if method=="aca"
+        @assert !isa(Rrank, Nothing)
+        U,V = aca(C, eps,Rrank);
+        return U,V
+    end
+
+    if method=="rrqr"
+        U,V = rrqr(C, eps)
+        return U,V
+    end
+
+    error("Method $method not implemented yet")
+
+end
+
 
 function bisect_cluster(X::Array{Float64})
     # code here
@@ -111,42 +216,22 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
         elseif H.m > MaxBlock || H.n > MaxBlock
             H.is_hmat = true
         else
-            if method=="svd"
-                k, U, S, V = kernel_svd(f, s.X, t.X, eps)
-                if k<=Rrank
-                    H.is_rkmatrix = true
-                else
-                    H.is_hmat = true
-                end
-            elseif method=="aca"
-                A = kernel_full(f, X, Y)
-                U,V = aca(A, eps,Rrank);
-            elseif method=="bbfmm"
-                err, U, V = kernel_bbfmm(f, X, Y, Rrank, eps)
-                # #TODO:if err ...
-            elseif method=="expansion"
-                err, U, V = kernel_expansion(f, X, Y, Rrank, eps)
-                # #TODO:if err ...
+            A = kernel_full(f, s.X, t.X)
+            U, V = compress(A, eps, method, Rrank=2*Rrank)
+            k = size(U,2)
+            if k<=Rrank
+                H.is_rkmatrix = true
+            else
+                H.is_hmat = true
             end
+            
         end
 
         if H.is_fullmatrix
             H.C = kernel_full(f, s.X, t.X)
         elseif H.is_rkmatrix
-            if method=="svd"
-                # @assert k!=0
-                H.A = U[:,1:k]
-                H.B = V[:,1:k] * diagm(0=>S[1:k])
-                # println("$(size(H)), $k, $Rrank => LR")
-            elseif method=="aca"
-                H.A = U
-                H.B = V
-            elseif method=="bbfmm"
-                H.A = U
-                H.B = V
-            elseif method=="expansion"
-                #TODO:
-            end
+            H.A = U
+            H.B = V
         else
             H.children = Array{Hmat}([Hmat() Hmat()
                                     Hmat() Hmat()])

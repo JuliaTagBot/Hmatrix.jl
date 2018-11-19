@@ -231,41 +231,7 @@ function hmat_from_children(h11, h12, h21, h22, s, t)
     return H
 end
 
-function rank_truncate(S, eps=1e-10)
-    if length(S)==0
-        return 0
-    end
-    k = findlast(S/S[1] .> eps)
-    if isa(k, Nothing)
-        return 0
-    else
-        return k
-    end
-end
 
-function compress(C, eps=1e-10, N = nothing)
-    if sum(abs.(C))≈0
-        A = zeros(size(C,1),1)
-        B = zeros(size(C,2),1)
-        return A, B
-    end
-
-    if size(C,1)==size(C,2)
-        U,S,V = psvd(C) 
-    else
-        U,S,V = svd(C)
-    end
-    if N==nothing
-        N = length(S)
-    end
-    k = rank_truncate(S,eps)
-    if k>N
-        k = length(S)
-    end
-    A = U[:,1:k]
-    B = (diagm(0=>S[1:k])*V'[1:k,:])'
-    return A, B
-end
 
 function svdtrunc(A1, B1, A2, B2, eps=1e-10)
     if size(A2,2)==0 

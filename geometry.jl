@@ -80,6 +80,7 @@ end
 # C is a full matrix
 # the function will try to compress C with given tolerance eps
 # Rrank is required when method = "aca"
+# C = UV'
 function compress(C, eps=1e-10, method="svd"; Rrank = nothing)
     # if the matrix is a zero matrix, return zero vectors
     if sum(abs.(C))≈0

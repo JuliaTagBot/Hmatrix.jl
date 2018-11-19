@@ -8,5 +8,8 @@ add_executable(main ACA_FullyPivoted.cpp)
 add_library(aca SHARED ACA_FullyPivoted.cpp)
 set_property(TARGET aca PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+
+add_executable(lr lowrank.cpp)
+
 target_link_libraries(main lapack blas m)
 

@@ -14,6 +14,16 @@ function aca(A::Array{Float64}, eps::Float64)
     return U, V
 end
 
+function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
+    U = zeros(size(X,1), Rrank)
+    V = zeros(size(Y,1), Rrank)
+    f_c = @cfunction(f, Cdouble, (Cdouble, Cdouble));
+    ccall((:bbfmm1D,"/Users/kailaix/Desktop/hmat/third-party/build/libbbfmm.dylib"), Cvoid,
+            (Ptr{Cvoid}, Ref{Cdouble}, Ref{Cdouble}, Cdouble, Cdouble, Cdouble, Cdouble, Ref{Cdouble}, Ref{Cdouble}, Cint, Cint, Cint),
+            f_c, X, Y, minimum(X), maximum(X) ,minimum(Y), maximum(Y) ,U,V, Rrank, length(X), length(Y))
+    return U, V
+end
+
 # column pivoting RRQR
 function rrqr(A,tol)
     F = pqrfact(A, rtol = tol)
@@ -39,13 +49,8 @@ end
 # C is a full matrix
 # the function will try to compress C with given tolerance eps
 # Rrank is required when method = "aca"
-<<<<<<< HEAD
-# C = UV'
-function compress(C, eps=1e-10, method="svd"; Rrank = nothing)
-=======
 function compress(C, eps=1e-10, method="aca")
     # method = "rrqr"
->>>>>>> 261a16dc4d77a54256f802725659f3669afe69fa
     # if the matrix is a zero matrix, return zero vectors
     if sum(abs.(C))<1e-5
         A = zeros(size(C,1),1)
@@ -136,10 +141,19 @@ function construct_cluster(X::Array{Float64}, Nleaf::Int64)
 end
 
 function kernel_full(f::Function, X::Array{Float64}, Y::Array{Float64})
-    A = zeros(size(X,1), size(Y,1))
-    for i = 1:size(X,1)
-        for j = 1:size(Y,1)
-            A[i,j] = f(X[i,:], Y[j,:])
+    if size(X,2)==1
+        A = zeros(length(X), length(Y))
+        for i = 1:length(X)
+            for j = 1:length(Y)
+                A[i,j] = f(X[i], Y[j])
+            end
+        end
+    else
+        A = zeros(size(X,1), size(Y,1))
+        for i = 1:size(X,1)
+            for j = 1:size(Y,1)
+                A[i,j] = f(X[i,:], Y[j,:])
+            end
         end
     end
     return A

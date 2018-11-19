@@ -12,6 +12,9 @@ set_property(TARGET aca PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 
 add_executable(lr lowrank.cpp)
+add_library(bbfmm SHARED lowrank.cpp)
+set_property(TARGET bbfmm PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 
 target_link_libraries(main lapack blas m)
 

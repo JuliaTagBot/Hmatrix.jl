@@ -2,6 +2,16 @@
 # This file contains the utilites for Cluster struct. It also contains basic functions to generate H-matrix
 @pyimport sklearn.cluster as cluster
 
+function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
+    U = zeros(size(A,1), Rrank)
+    V = zeros(size(A,2), Rrank)
+    R = ccall((:aca_wrapper,"/Users/kailaix/Desktop/hmat/third-party/build/libaca.dylib"), Cint, (Ref{Cdouble}, Ref{Cdouble},
+                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
+    U = U[:,1:Rrank]
+    V = V[:,1:Rrank]
+    return U, V
+end
+
 function bisect_cluster(X::Array{Float64})
     # code here
     clf = cluster.KMeans(n_clusters=2, random_state=0)
@@ -108,6 +118,9 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
                 else
                     H.is_hmat = true
                 end
+            elseif method=="aca"
+                A = kernel_full(f, X, Y)
+                U,V = aca(A, eps,Rrank);
             elseif method=="bbfmm"
                 err, U, V = kernel_bbfmm(f, X, Y, Rrank, eps)
                 # #TODO:if err ...
@@ -125,6 +138,9 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
                 H.A = U[:,1:k]
                 H.B = V[:,1:k] * diagm(0=>S[1:k])
                 # println("$(size(H)), $k, $Rrank => LR")
+            elseif method=="aca"
+                H.A = U
+                H.B = V
             elseif method=="bbfmm"
                 H.A = U
                 H.B = V

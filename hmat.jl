@@ -117,7 +117,8 @@ function PyPlot.:plot(c::Cluster)
     end
 end
 
-# const tos = TimerOutput()
+const tos = TimerOutput()
+reset_timer!(tos)
 
 function Base.:size(H::Hmat)
     return (H.m, H.n)
@@ -302,7 +303,7 @@ function hmat_copy!(H::Hmat, A::Hmat)
     H.t = A.t
     H.P = copy(A.P)
     if A.is_fullmatrix
-        H.C = copy(A.C) # bottleneck
+        @timeit tos "b1" H.C = copy(A.C) # bottleneck
         H.is_fullmatrix = true
     elseif A.is_rkmatrix
         H.A = copy(A.A)
@@ -381,7 +382,7 @@ function transpose!(a::Hmat)
         a.A, a.B = a.B, a.A
     elseif a.is_fullmatrix
         # a.C = a.C'
-        a.C = adjoint(a.C)   # bottleneck
+        @timeit tos "b2" a.C = a.C'   # bottleneck
     else
         for i = 1:2
             for j = 1:2
@@ -502,11 +503,11 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, eps)
             # error("Not used")
         end
     else
-        transpose!(a)
-        transpose!(b)
+        @timeit tos "t" transpose!(a)
+        @timeit tos "t" transpose!(b)
         hmat_trisolve!(a, b, true, unitdiag, eps)
-        transpose!(a)
-        transpose!(b)
+        @timeit tos "t" transpose!(a)
+        @timeit tos "t" transpose!(b)
     end
 end
 
@@ -514,7 +515,7 @@ end
 # total number of nodes instead of relative order of the points
 function permute_hmat!(H::Hmat, P::AbstractArray{Int64})
     if H.is_fullmatrix
-        H.C = H.C[P,:] # bottleneck
+        @timeit tos "b3" H.C = H.C[P,:] # bottleneck
         # @inbounds for i = 1:size(H.C,2)
         #     @views permute!(H.C[:,i], P)
         # end
@@ -553,13 +554,13 @@ function LinearAlgebra.:lu!(H::Hmat,eps=1e-10)
         # print(H)
 
         # E = getl(to_fmat(H.children[1,1]), true)\to_fmat(H.children[1,2])
-        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, eps)      # islower, unitdiag
+        @timeit tos "u" hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, eps)      # islower, unitdiag
         # println("Err-L ", maximum(abs.(E-to_fmat(H.children[1,2]))))
         # @assert maximum(abs.(E-to_fmat(H.children[1,2])))<1e-6
 
 
         # E = to_fmat(H.children[2,1])/getu(to_fmat(H.children[1,1]), false)
-        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, eps)   # islower, unitdiag
+        @timeit tos "l" hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, eps)   # islower, unitdiag
         # println("Err-U ", maximum(abs.(E-to_fmat(H.children[2,1]))))
         # @assert maximum(abs.(E-to_fmat(H.children[2,1])))<1e-6
 

@@ -50,7 +50,7 @@ end
 # C is a full matrix
 # the function will try to compress C with given tolerance eps
 # Rrank is required when method = "aca"
-function compress(C, eps=1e-10, method="aca"; Rrank = nothing)
+function compress(C, eps=1e-10, method="svd"; Rrank = nothing)
     if Rrank == nothing
         # @warn "Rrank=nothing, fall back to rrqr"
         method = "rrqr"

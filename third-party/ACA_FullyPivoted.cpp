@@ -218,11 +218,18 @@ void ACA_FullyPivoted(MatrixXd &A,MatrixXd &U, MatrixXd &V,double &epsilon,int &
 int aca_wrapper(double *AA, double *UU, double *VV, int m, int n, double epsilon,int rank){
 	MatrixXd A, U, V;
 	A = Map<MatrixXd>( AA, m, n );
-	ACA_FullyPivoted(A, U, V, epsilon, rank, 1);
-	for(int i=0;i<U.rows()*U.cols();i++){
+	int rank_placeholder = 0;
+	ACA_FullyPivoted(A, U, V, epsilon, rank_placeholder, 1);
+	
+	int M = U.cols();
+	if(U.cols()>rank){
+		 M = rank+1;
+	}
+
+	for(int i=0;i<U.rows()*M;i++){
 		UU[i] = U(i);
 	}
-	for(int i=0;i<V.rows()*V.cols();i++){
+	for(int i=0;i<V.rows()*M;i++){
 		VV[i] = V(i);
 	}
 	return U.cols();

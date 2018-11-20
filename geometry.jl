@@ -4,20 +4,21 @@ using PyCall
 using LinearAlgebra
 @pyimport sklearn.cluster as cluster
 
-function aca(A::Array{Float64}, eps::Float64)
-    U = zeros(size(A,1), size(A,2))
-    V = zeros(size(A,2), size(A,1))
-    R = ccall((:aca_wrapper,"/home/kailai/Desktop/hmat/third-party/build/libaca.so"), Cint, (Ref{Cdouble}, Ref{Cdouble},
-                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, 0)
+function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
+    U = zeros(size(A,1), Rrank+1)
+    V = zeros(size(A,2), Rrank+1)
+    R = ccall((:aca_wrapper,"/Users/kailaix/Desktop/hmat/third-party/build/libaca.dylib"), Cint, (Ref{Cdouble}, Ref{Cdouble},
+                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
+    R = min(R, Rrank+1)
     U = U[:,1:R]
     V = V[:,1:R]
     return U, V
 end
 
-function bbfmm1d(f, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
+function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
     U = zeros(size(X,1), Rrank)
     V = zeros(size(Y,1), Rrank)
-    f_c = @cfunction(f, Cdouble, (Cdouble, Cdouble));
+    f_c = @cfunction($f, Cdouble, (Cdouble, Cdouble));
     ccall((:bbfmm1D,"/Users/kailaix/Desktop/hmat/third-party/build/libbbfmm.dylib"), Cvoid,
             (Ptr{Cvoid}, Ref{Cdouble}, Ref{Cdouble}, Cdouble, Cdouble, Cdouble, Cdouble, Ref{Cdouble}, Ref{Cdouble}, Cint, Cint, Cint),
             f_c, X, Y, minimum(X), maximum(X) ,minimum(Y), maximum(Y) ,U,V, Rrank, length(X), length(Y))
@@ -72,7 +73,7 @@ function compress(C, eps=1e-10, method="aca")
     end
 
     if method=="aca"             # more accurate
-        U,V = aca(C, eps);
+        U,V = aca(C, eps, Rrank);
         return U,V
     end
 

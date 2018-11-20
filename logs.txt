@@ -1,0 +1,174 @@
+ Use same eps for H-construction and LU. Balance estimation error and approximation error. 
+
+ *** Test begin
+eps = 0.01
+Matrix Error = 1.2222539191978887
+Matrix Vector Error = 0.00012711057674990128
+Solve Error = 0.11330208894953889
+LU Matrix Error = 1.2931639190401505
+LU Operator Error = 1.2931639190401505
+eps = 0.001
+Matrix Error = 0.07116779547912433
+Matrix Vector Error = 7.114662201582944e-6
+Solve Error = 0.0038656004623447153
+LU Matrix Error = 0.14514317092338658
+LU Operator Error = 0.14514317092338658
+eps = 0.0001
+Matrix Error = 0.0034958764978862966
+Matrix Vector Error = 4.449397147515851e-7
+Solve Error = 0.0003083179273012544
+LU Matrix Error = 0.011145034415816824
+LU Operator Error = 0.011145034415816824
+eps = 1.0e-5
+Matrix Error = 0.00016160502838480362
+Matrix Vector Error = 1.48285496999392e-8
+Solve Error = 9.352648025030649e-6
+LU Matrix Error = 0.00022809277492763513
+LU Operator Error = 0.00022809277492763513
+eps = 1.0e-6
+Matrix Error = 6.108556713346758e-6
+Matrix Vector Error = 2.1915530405576342e-10
+Solve Error = 7.977230221552775e-8
+LU Matrix Error = 6.108570595575458e-6
+LU Operator Error = 1.3178480529063563e-10
+====================
+N = 1
+Matrix Error = 0.0
+Matrix Vector Error = 6.138122546710026e-16
+Solve Error = 9.63948791379853e-14
+LU Matrix Error = 2.1316282072803006e-14
+LU Operator Error = 2.1316282072803006e-14
+N = 3
+Matrix Error = 0.03724823571530367
+Matrix Vector Error = 5.386981581134098e-6
+Solve Error = 0.001976164985108192
+LU Matrix Error = 0.1184251196108832
+LU Operator Error = 0.1184251196108832
+N = 5
+Matrix Error = 0.07116779547912433
+Matrix Vector Error = 6.477081125572931e-6
+Solve Error = 0.0038150589085135336
+LU Matrix Error = 0.14514317092338835
+LU Operator Error = 0.14514317092338835
+N = 10
+Matrix Error = 0.14327516093643933
+Matrix Vector Error = 1.2089991170039574e-5
+Solve Error = 0.013415005771205404
+LU Matrix Error = 0.15532948930996682
+LU Operator Error = 0.15532948930996682
+N = 20
+Matrix Error = 0.18419868954826146
+Matrix Vector Error = 1.619551360521994e-5
+Solve Error = 0.009643613435167408
+LU Matrix Error = 0.18651142844069302
+LU Operator Error = 0.14259903163495835
+N = 30
+Matrix Error = 0.18419868954826146
+Matrix Vector Error = 1.54893191373494e-5
+Solve Error = 0.018270214498853646
+LU Matrix Error = 0.18651142844069302
+LU Operator Error = 0.14259903163495835
+
+============================================ 
+
+ACA
+
+*** Test begin
+eps = 0.01
+Matrix Error = 0.0016211888124120222
+Matrix Vector Error = 5.228211898813943e-6
+Solve Error = 0.00011896390338674588
+LU Matrix Error = 0.0017194527254789094
+LU Operator Error = 0.0017194527254789094
+eps = 0.001
+Matrix Error = 0.00010064105797513712
+Matrix Vector Error = 1.5453272487214422e-7
+Solve Error = 6.866698689287537e-6
+LU Matrix Error = 9.76318759398076e-5
+LU Operator Error = 9.76318759398076e-5
+eps = 0.0001
+Matrix Error = 0.0
+Matrix Vector Error = 6.291799244595543e-16
+Solve Error = 5.540960205480545e-14
+LU Matrix Error = 1.4210854715202004e-14
+LU Operator Error = 1.4210854715202004e-14
+eps = 1.0e-5
+Matrix Error = 0.0
+Matrix Vector Error = 6.146008747650564e-16
+Solve Error = 5.52291841628484e-14
+LU Matrix Error = 1.4210854715202004e-14
+LU Operator Error = 1.4210854715202004e-14
+
+==================================
+
+RRQR
+
+*** Test begin
+eps = 0.01
+Matrix Error = 0.43147342092908225
+Matrix Vector Error = 0.0007950250841625693
+Solve Error = 0.031373551032533906
+LU Matrix Error = 0.964922200142027
+LU Operator Error = 0.964922200142027
+eps = 0.001
+Matrix Error = 0.012584202956151369
+Matrix Vector Error = 4.513119172348382e-5
+Solve Error = 0.0034369489032116474
+LU Matrix Error = 0.1296909648621849
+LU Operator Error = 0.1296909648621849
+eps = 0.0001
+Matrix Error = 0.0012366796675389313
+Matrix Vector Error = 7.5967792963929844e-6
+Solve Error = 0.00015551003939088694
+LU Matrix Error = 0.002271966327030084
+LU Operator Error = 0.002271966327030084
+eps = 1.0e-5
+Matrix Error = 8.645052288991373e-5
+Matrix Vector Error = 2.2924281445593885e-7
+Solve Error = 1.4900544112480066e-6
+LU Matrix Error = 8.645052289013577e-5
+LU Operator Error = 2.9282687201259705e-5
+eps = 1.0e-6
+Matrix Error = 0.0
+Matrix Vector Error = 6.035764520233387e-16
+Solve Error = 6.944080726676825e-14
+LU Matrix Error = 1.4210854715202004e-14
+LU Operator Error = 1.4210854715202004e-14
+====================
+N = 1
+Matrix Error = 0.0
+Matrix Vector Error = 6.020753640510737e-16
+Solve Error = 5.2078865306999345e-14
+LU Matrix Error = 1.4210854715202004e-14
+LU Operator Error = 1.4210854715202004e-14
+N = 3
+Matrix Error = 0.008996019975639147
+Matrix Vector Error = 2.2474103862854988e-5
+Solve Error = 0.0007667167260819894
+LU Matrix Error = 0.023195987901380555
+LU Operator Error = 0.023195987901380555
+N = 5
+Matrix Error = 0.011605582250475255
+Matrix Vector Error = 4.470318228797179e-5
+Solve Error = 0.0018200834017858137
+LU Matrix Error = 0.1317209162861559
+LU Operator Error = 0.1317209162861559
+N = 10
+Matrix Error = 0.04518312343581066
+Matrix Vector Error = 7.673304225397853e-5
+Solve Error = 0.0065914121859939135
+LU Matrix Error = 0.14066032324760158
+LU Operator Error = 0.14066032324760158
+N = 20
+Matrix Error = 0.06998416125569129
+Matrix Vector Error = 0.0001818481637065177
+Solve Error = 0.012203020159885135
+LU Matrix Error = 0.18298168034484696
+LU Operator Error = 0.18298168034484696
+N = 30
+Matrix Error = 0.09075764081996063
+Matrix Vector Error = 0.00019124380286387246
+Solve Error = 0.01714988660593383
+LU Matrix Error = 0.20803763133438835
+LU Operator Error = 0.20803763133438746
+

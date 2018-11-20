@@ -9,10 +9,13 @@ function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar, eps=1e-10)
     # println(a)
     # p = to_fmat(a) + scalar*b
     if a.is_fullmatrix
-        a.C += scalar * b
+        # a.C += scalar * b
+        BLAS.axpy!(scalar, b, a.C)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_rkmatrix
         C = a.A*a.B'+scalar*b
+        # C = copy(b)
+        # BLAS.gemm('N','T', 1.0, a.A, a.B, scalar, C);
         a.A, a.B = compress(C, 1e-10) # cautious: rank might increase
         # println(maximum(p-to_fmat(a)))
         # @assert maximum(p-to_fmat(a))<1e-6
@@ -44,7 +47,8 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
         if prod(size(b.A))==0 
             return
         end
-        a.C += scalar * b.A * b.B'
+        # a.C += scalar * b.A * b.B'
+        BLAS.gemm!('N','T',scalar, b.A, b.B, 1.0, a.C)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_fullmatrix && b.is_hmat
         c = copy(b)
@@ -58,8 +62,9 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
     elseif a.is_rkmatrix && b.is_hmat
         # TODO: is that so?
         C = to_fmat(b)
-        d = a.A*a.B' + scalar*C
-        a.A, a.B = compress(d, eps)
+        # d = a.A*a.B' + scalar*C
+        BLAS.gemm!('N','T',1.0,a.A, a.B, scalar, C)
+        a.A, a.B = compress(C, eps)
         # println(maximum(p-to_fmat(a)))
         # @assert maximum(p-to_fmat(a))<1e-6
         # error("Not implemented yet")

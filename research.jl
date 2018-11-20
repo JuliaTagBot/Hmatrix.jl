@@ -2,7 +2,7 @@
 #  research script for Merton kernel
 include("hmat.jl")
 
-
+using Profile
 function fast_construct_rk_mat(alpha, beta, x, y)
     xbar = mean(x, dims=1)
     t0 = x .- xbar
@@ -186,7 +186,9 @@ function test_case_2(n = 10, tol=1e-5; rundense=false)
     end
     
     HH = to_fmat(H)
-    @time lu!(H, tol)
+    # Profile.clear_malloc_data()
+    @time @profile lu!(H, tol)
+    # return
     y1 = H\x
     y2 = A\x
     println("Solve Error = ", rel_error(y2, y1))
@@ -198,4 +200,16 @@ function test_case_2(n = 10, tol=1e-5; rundense=false)
     println("LU Operator Error = $(maximum(abs.(G)))")
 
     
+end
+
+function new_profile()
+    f = open("logs.txt","w")
+    Profile.print(f, format=:tree)
+    close(f)
+
+    f = open("log.txt","w")
+    Profile.print(f, format=:flat)
+    close(f)
+
+    Profile.clear()
 end

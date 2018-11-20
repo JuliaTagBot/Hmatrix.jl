@@ -250,15 +250,15 @@ function rkmat_add!(a, b, scalar, method=1, eps=1e-10)
         return A2, B2
     end
     
-    FA = qr([A1 A2])
-    FB = qr([B1 B2])
+    FAQ, FAR = qr([A1 A2])
+    FBQ, FBR = qr([B1 B2])
 
-    W = FA.R*FB.R'
+    W = FAR*FBR'
     U,V = compress(W, eps, "svd")
     r = size(U,1)
-    A = FA.Q[:,1:r] * U
-    B = FB.Q[:,1:r] * V
-
+    A = FAQ * U
+    V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
+    B =  FBQ* V # find ways to disable bounds check
     a.A, a.B= A, B
 end
 
@@ -302,7 +302,7 @@ function hmat_copy!(H::Hmat, A::Hmat)
     H.t = A.t
     H.P = copy(A.P)
     if A.is_fullmatrix
-        H.C = copy(A.C)
+        H.C = copy(A.C) # bottleneck
         H.is_fullmatrix = true
     elseif A.is_rkmatrix
         H.A = copy(A.A)
@@ -380,7 +380,8 @@ function transpose!(a::Hmat)
     if a.is_rkmatrix
         a.A, a.B = a.B, a.A
     elseif a.is_fullmatrix
-        a.C = a.C'
+        # a.C = a.C'
+        a.C = adjoint(a.C)   # bottleneck
     else
         for i = 1:2
             for j = 1:2
@@ -424,7 +425,9 @@ function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag, eps)
         b2 -= a21 * b1
         # hmat_sub_mul!(b2, a21, b1, eps)
         mat_full_solve(a22, b2, unitdiag, eps)
-        b[:] = [b1;b2]
+        # b[:] = [b1;b2]
+        b[1:n,:] = b1
+        b[n+1:end,:] = b2
         # println("Error = ", maximum(abs.(b-x)))
     end
 end
@@ -511,7 +514,10 @@ end
 # total number of nodes instead of relative order of the points
 function permute_hmat!(H::Hmat, P::AbstractArray{Int64})
     if H.is_fullmatrix
-        H.C = H.C[P,:]
+        H.C = H.C[P,:] # bottleneck
+        # @inbounds for i = 1:size(H.C,2)
+        #     @views permute!(H.C[:,i], P)
+        # end
     elseif H.is_rkmatrix
         H.A = H.A[P,:]
     else

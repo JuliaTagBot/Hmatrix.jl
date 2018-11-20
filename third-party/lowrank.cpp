@@ -22,19 +22,6 @@ Vector Chebyshev_points(int n) {
     X(i) = cos( M_PI*(2.0*i+1.0)/(2.0*n) );
   return X;
 }
-
-// Chebyshev points in [-1, 1]
-Vector Chebyshev_points2D(int n) {
-  Vector X(n*n,2);
-  for (int i=0; i<n; i++)
-    for(int j=0;j<n;j++){
-      int k = i+j*n;
-      X(k,1) = cos( M_PI*(2.0*i+1.0)/(2.0*n) );
-      X(k,2) = cos( M_PI*(2.0*j+1.0)/(2.0*n) );
-    }
-      
-  return X;
-}
   
 class Interpolation {
 public:
@@ -64,9 +51,14 @@ private:
   Vector Cheb;
 };
 
+typedef double (*FUN)(double, double);
+
+double Kfunction(double x, double y){
+    return 1.0/((x-y)*(x-y));
+}
 
 void Compute_lowrank
-(const Kernel &K, 
+(FUN K, 
 const Vector &X, double xmin, double xmax, 
 const Vector &Y, double ymin, double ymax,
 const int r, Matrix &U, Matrix &S, Matrix &V) {
@@ -80,6 +72,22 @@ const int r, Matrix &U, Matrix &S, Matrix &V) {
   for (int i=0; i<r; i++)
     for (int j=0; j<r; j++)
       S(i, j) = K( chebX(i), chebY(j) );
+}
+
+extern "C" void bbfmm1D(FUN kfun, double*X, double*Y, double xmin, double xmax, double ymin, double ymax, 
+      double *U, double*V, int r, int n1, int n2){
+        Vector Vx(n1), Vy(n2);
+        for(int i=0;i<n1;i++) Vx(i) = X[i];
+        for(int i=0;i<n2;i++) Vy(i) = Y[i];
+        Matrix mU(n1,r), mS(r,r), mV(n2,r);
+        Compute_lowrank(kfun, Vx, xmin, xmax, Vy, ymin, ymax, r, mU, mS, mV);
+        mU = mU*mS;
+        for(int i=0;i<mU.rows()*mU.cols();i++){
+          U[i] = mU(i);
+        }
+        for(int i=0;i<mV.rows()*mV.cols();i++){
+          V[i] = mV(i);
+        }
 }
 
 int main(int argc, char *argv[]) {
@@ -96,16 +104,15 @@ int main(int argc, char *argv[]) {
   Vector X = Vector::Random(n); // [-1, 1]
   Vector Y = Vector::Random(n) + Vector::Constant(n, 10); // [9, 11] 
 
-  Kernel K;
   Matrix A(n, n);
   for (int i=0; i<n; i++) {
     for (int j=0; j<n; j++) {
-      A(i, j) = K( X(i), Y(j) );
+      A(i, j) = Kfunction( X(i), Y(j) );
     }
   }
 
   Matrix U(n, r), S(r, r), V(n, r);
-  Compute_lowrank(K, X, -1, 1, Y, 9, 11, r, U, S, V);
+  Compute_lowrank(Kfunction, X, -1, 1, Y, 9, 11, r, U, S, V);
   
   Matrix E = A - U*S*V.transpose();
 

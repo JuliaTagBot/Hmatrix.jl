@@ -14,7 +14,7 @@ function aca(A::Array{Float64}, eps::Float64)
     return U, V
 end
 
-function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
+function bbfmm1d(f, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
     U = zeros(size(X,1), Rrank)
     V = zeros(size(Y,1), Rrank)
     f_c = @cfunction(f, Cdouble, (Cdouble, Cdouble));
@@ -318,6 +318,13 @@ end
 
 
 # ============= testing ================
+
+function easy_construct_cluster(A::Array{Float64})
+    n = size(A,1)
+    C = uniform_cluster(n, 64)
+    return C
+end
+
 function test_matvec()
     f = (x,y)->1/(norm(x-y)+0.1)
     X = rand(2000,2);

@@ -397,7 +397,8 @@ end
 
 # # special function for computing c = c - a*b
 function hmat_sub_mul!(c::Hmat, a::Hmat, b::Hmat, eps)
-    hmat_add!(c, hmul(a, b, eps), -1.0, eps)
+    @timeit tos "mul" M = hmul(a, b, eps)
+    @timeit tos "sub_mul" hmat_add!(c, M , -1.0, eps)
 end
 
 # solve a x = b where a is possibly a H-matrix. a is lower triangular. 

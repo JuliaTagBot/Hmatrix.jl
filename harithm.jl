@@ -41,7 +41,7 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
     # p = to_fmat(a) + scalar*to_fmat(b)
     if b.is_fullmatrix
         # println(a)
-        hmat_full_add!(a, b.C, scalar, eps)
+        @timeit tos "hmat_full_add!" hmat_full_add!(a, b.C, scalar, eps)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_fullmatrix && b.is_rkmatrix
         if prod(size(b.A))==0 
@@ -51,9 +51,11 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
         BLAS.gemm!('N','T',scalar, b.A, b.B, 1.0, a.C)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_fullmatrix && b.is_hmat
+        # @timeit tos "full hmat - hadd" begin
         c = copy(b)
-        to_fmat!(c)
+        @timeit tos "fmat!" to_fmat!(c)
         a.C += scalar * c.C
+    # end
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_rkmatrix && b.is_rkmatrix
         rkmat_add!(a, b, scalar, "svd", eps)
@@ -61,7 +63,7 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_rkmatrix && b.is_hmat
         # TODO: is that so?
-        C = to_fmat(b)
+        @timeit tos "to_fmat!" C = to_fmat(b)    # bottleneck
         # d = a.A*a.B' + scalar*C
         BLAS.gemm!('N','T',1.0,a.A, a.B, scalar, C)
         a.A, a.B = compress(C, eps)
@@ -105,7 +107,7 @@ end
 function hadd(a::Hmat, b::Hmat, eps::Float64)
     # @assert size(a,1) == size(b,1) && size(a,2)==size(b,2)
     c = copy(a)
-    hmat_add!( c, b, 1.0, eps )
+    @timeit tos "hmat_add!" hmat_add!( c, b, 1.0, eps )
     # @assert maximum(abs.(to_fmat(a)+to_fmat(b)-to_fmat(c)))<1e-6
     return c
 end
@@ -190,26 +192,47 @@ function mat_full_mul(a::Hmat, b::Hmat, eps::Float64)
     return H
 end
 
+function transpose_hmat_mat_mul(H::Hmat, V::AbstractArray{Float64})
+    if H.is_fullmatrix
+        return H.C'*V
+    end
+    if H.is_rkmatrix
+        return H.B * (H.A'*V)
+    end
+    if H.is_hmat
+        h11 = H.children[1,1]
+        h12 = H.children[1,2]
+        h21 = H.children[2,1]
+        h22 = H.children[2,2]
+        V1 = transpose_hmat_mat_mul(h11, V[1:h11.m,:]) + transpose_hmat_mat_mul(h21, V[h11.m+1:end,:])
+        V2 = transpose_hmat_mat_mul(h12, V[1:h11.m,:]) + transpose_hmat_mat_mul(h22, V[h11.m+1:end,:])
+        return [V1;V2]
+    end
+    error("Invalid H")
+end
+
 function hmul(a::Hmat, b::Hmat, eps::Float64)
     # R = to_fmat(a)*to_fmat(b)
     if a.is_fullmatrix
-        H = full_mat_mul(a, b, eps)
+        @timeit tos "full mat" H = full_mat_mul(a, b, eps)
         # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
     elseif b.is_fullmatrix
-        H = mat_full_mul(a, b, eps)
+        @timeit tos "mat full" H = mat_full_mul(a, b, eps)
         # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
     elseif a.is_rkmatrix && b.is_rkmatrix
-        H = Hmat(is_rkmatrix = true, A = a.A, B = b.B * (b.A' * a.B))
+        @timeit tos "ab" H = Hmat(is_rkmatrix = true, A = a.A, B = b.B * (b.A' * a.B))
         # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
     elseif a.is_rkmatrix && b.is_hmat
-        c = copy(b)
-        to_fmat!(c)
-        H = Hmat(is_rkmatrix = true, A = a.A, B = c.C'*a.B)
+        # c = copy(b)
+        # @timeit tos "to_fmat" to_fmat!(c)
+        @timeit tos "BB" BB = transpose_hmat_mat_mul(b, a.B)
+        H = Hmat(is_rkmatrix = true, A = a.A, B = BB)
+        # H = Hmat(is_rkmatrix = true, A = a.A, B = c.C'*a.B)
         # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
     elseif a.is_hmat && b.is_rkmatrix
-        c = copy(a)
-        to_fmat!(c)
-        H = Hmat(is_rkmatrix = true, A = c*b.A, B = b.B)
+        # c = copy(a)
+        # to_fmat!(c)
+        @timeit tos "hmat rkmat" H = Hmat(is_rkmatrix = true, A = a*b.A, B = b.B)
         # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
     elseif a.is_hmat && b.is_hmat 
         H = Hmat(is_hmat = true)
@@ -223,7 +246,9 @@ function hmul(a::Hmat, b::Hmat, eps::Float64)
             for j = 1:2
                 # hmat_add!(H.children[i,j], hmul(a.children[i,1],b.children[1,j],eps), 1.0 ,eps)
                 # hmat_add!(H.children[i,j], hmul(a.children[i,2],b.children[2,j],eps), 1.0 ,eps)
-                H.children[i,j] = hadd(hmul(a.children[i,1],b.children[1,j],eps) , hmul(a.children[i,2],b.children[2,j],eps), eps)
+                H1 = hmul(a.children[i,1],b.children[1,j],eps)
+                H2 = hmul(a.children[i,2],b.children[2,j],eps)
+                @timeit tos "hadd" H.children[i,j] = hadd( H1, H2, eps)
                 # H.children[i,j] = hmul(a.children[i,1],b.children[1,j],eps) + hmul(a.children[i,2],b.children[2,j],eps)
             end
         end

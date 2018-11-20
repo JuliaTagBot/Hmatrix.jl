@@ -187,7 +187,7 @@ function test_case_2(n = 10, tol=1e-5; rundense=false)
     
     HH = to_fmat(H)
     # Profile.clear_malloc_data()
-    @time @profile lu!(H, tol)
+    @time @profile @timeit tos "lu" lu!(H, tol)
     # return
     y1 = H\x
     y2 = A\x

@@ -7,7 +7,7 @@ using LinearAlgebra
 function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
     U = zeros(size(A,1), Rrank+1)
     V = zeros(size(A,2), Rrank+1)
-    R = ccall((:aca_wrapper,"/Users/kailaix/Desktop/hmat/third-party/build/libaca.dylib"), Cint, (Ref{Cdouble}, Ref{Cdouble},
+    R = ccall((:aca_wrapper,"/home/kailai/Desktop/hmat/third-party/build/libaca.so"), Cint, (Ref{Cdouble}, Ref{Cdouble},
                 Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
     R = min(R, Rrank+1)
     U = U[:,1:R]
@@ -50,7 +50,11 @@ end
 # C is a full matrix
 # the function will try to compress C with given tolerance eps
 # Rrank is required when method = "aca"
-function compress(C, eps=1e-10, method="aca")
+function compress(C, eps=1e-10, method="aca"; Rrank = nothing)
+    if Rrank == nothing
+        # @warn "Rrank=nothing, fall back to rrqr"
+        method = "rrqr"
+    end
     # method = "rrqr"
     # if the matrix is a zero matrix, return zero vectors
     if sum(abs.(C))<1e-5
@@ -109,6 +113,10 @@ function inverse_permutation(P::AbstractArray{Int64})
 end
 
 function construct_cluster(X::Array{Float64}, Nleaf::Int64)
+    if size(X,2)==1
+        X = reshape(X,length(X),1)
+    end
+
     function downward(c::Cluster)
         if c.N<=Nleaf
             c.isleaf = true
@@ -187,7 +195,7 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
             H.is_hmat = true
         else
             A = kernel_full(f, s.X, t.X)
-            U, V = compress(A, eps, method)
+            U, V = compress(A, eps, method; Rrank=Rrank)
             k = size(U,2)
             if k<=Rrank
                 H.is_rkmatrix = true
@@ -291,7 +299,7 @@ function cluster_from_list(l)
         for i = 1:2:length(cs)-1
             c1 = cs[i]
             c2 = cs[i+1]
-            c = Cluster(m = c1.N, n = c2.N, left = c1, right = c2, N = c1.N + c2.N, isleaf = false, s = c1.s, e = c2.e)
+            c = Cluster(m = c1.N, n = c2.N, left = c1, right = c2, N = c1.N + c2.N, isleaf = false, s = c1.s, e = c2.e, P=c1.s:c2.e)
             push!(next_list, c)
         end
         if mod(length(cs),2)==1
@@ -302,7 +310,7 @@ function cluster_from_list(l)
     cs = []
     s = 1
     for r in l
-        push!(cs, Cluster(N = r, isleaf = true, s = s, e = s+r-1))
+        push!(cs, Cluster(N = r, isleaf = true, s = s, e = s+r-1, P=s:s+r-1))
         s = s+r
     end
     return helper(cs)

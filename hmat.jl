@@ -12,6 +12,7 @@ using LowRankApprox
 using FastGaussQuadrature
 using TimerOutputs
 using PyCall
+@pyimport matplotlib.patches as patch
 
 if !@isdefined Cluster
     @with_kw mutable struct Cluster
@@ -50,10 +51,14 @@ end
 include("geometry.jl")
 include("harithm.jl")
 
-function Base.:print(c::Cluster)
+function Base.:print(c::Cluster;verbose=false)
     current_level = [c]
     while length(current_level)>0
-        println(join(["$(x.N)($(x.s),$(x.e))" for x in current_level], " "))
+        if verbose
+            println(join(["$(x.N)($(x.s),$(x.e))" for x in current_level], " "))
+        else
+            println(join(["$(x.N)" for x in current_level], " "))
+        end
         next_level = []
         for n in current_level
             if !n.isleaf 
@@ -616,36 +621,36 @@ function solve(a::Hmat, y::AbstractArray{Float64}, P::Int64, Q::Int64)
     return w
 end
 
-function color_level(H)
-    function helper!(H, level)
+function add_patch(a,b,c,d, n; edgecolor, color)
+    return patch.Rectangle([c,a], d-c, b-a, edgecolor=edgecolor, color=color, alpha=0.6)
+end
+
+function PyPlot.:matshow(H::Hmat)
+    cfig = figure()
+    ax = cfig[:add_subplot](1,1,1)
+    ax[:set_aspect]("equal")
+    function helper(H)
         if H.is_fullmatrix
-            H.C = ones(size(H.C))* (rand()*0.5)
+            c = add_patch( H.s.s, H.s.e, H.t.s, H.t.e, H.m, edgecolor="k", color="y")
+            ax[:add_artist](c)
         elseif H.is_rkmatrix
-            H.A = -ones(H.m, 1)
-            H.B = ones(H.n, 1) * (level + rand()*0.5)
+            c = add_patch( H.s.s, H.s.e, H.t.s, H.t.e, H.m, edgecolor="k", color="g")
+            ax[:add_artist](c)
         else
             for i = 1:2
                 for j = 1:2
-                    helper!(H.children[i,j], level+1)
+                    helper(H.children[i,j])
                 end
             end
         end
     end
-    helper!(H, 0)
-    to_fmat!(H)
-    return H.C
+    helper(H)
+    xlim([1,H.m])
+    ylim([1,H.n])
+    gca()[:invert_yaxis]()
+    show()
 end
 
-function plot_hmat(H)
-    C = color_level(H)
-    matshow(C)
-end
-
-function PyPlot.:matshow(H::Hmat)
-    P = copy(H)
-    C = color_level(P)
-    matshow(C)
-end
 
 function printmat(H)
     println("=============== size = $(size(H,1))x$(size(H,2)) ===================")

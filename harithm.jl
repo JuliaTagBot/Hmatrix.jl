@@ -35,6 +35,72 @@ function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar, eps=1e-10)
     end
 end
 
+function full_hmat_add(A::Array{Float64}, H::Hmat)
+    if H.is_fullmatrix
+        return A + H.C
+    end
+    if H.is_rkmatrix
+        return A + H.A*H.B'
+    end
+    m = H.m
+    n = H.m
+    return [
+        full_hmat_add(A[1:m,1:n], H.children[1,1]) full_hmat_add(A[1:m, n+1:end], H.children[1,2])
+        full_hmat_add(A[m+1:end,1:n], H.children[2,1]) full_hmat_add(A[m+1:end,n+1:end], H.children[2,2])
+    ]
+end
+
+function compress_low_rank(A::Array{Float64}, B::Array{Float64}, eps::Float64)
+    FA = qr(A)
+    FB = qr(B)
+    W = FA.R*FB.R'
+    A1, A2 = compress(W, eps, "svd")
+    # @show size(QA), size(A1), size(QB), size(A2)
+    return Array(FA.Q)*A1, Array(FB.Q)*A2
+end
+
+function rkmat_hmat_add(A::Array{Float64}, B::Array{Float64}, scalar::Float64, H::Hmat, eps::Float64)
+    # @show size(A,1), size(A,2),size(B,1), size(B,2),H.m, H.n
+    # @assert size(A,2)==size(B,2) && size(A,1)==H.m && size(B,1)==H.n
+    eps = 1e-10 #TODO: Change in the future 
+    # C = A*B'+scalar*to_fmat(H)
+    if H.is_fullmatrix
+        C = A*B' + scalar*H.C
+        A, B = compress(C, eps)
+        # @show "H.is_fullmatrix = ", pointwise_error(A*B', C)
+        return A, B
+    end
+
+    if H.is_rkmatrix
+        A, B = _rkmat_add!(A, B, scalar*H.A, H.B, eps)
+        # @show "H.is_rkmatrix = ",pointwise_error(A*B', C)
+        return A, B
+    end
+
+    if H.is_hmat
+        m = H.children[1,1].m
+        n = H.children[1,1].n
+        A11, B11 = rkmat_hmat_add(A[1:m,:], B[1:n,:],scalar, H.children[1,1], eps)
+        A12, B12 = rkmat_hmat_add(A[1:m,:], B[n+1:end,:],scalar, H.children[1,2], eps)
+        A21, B21 = rkmat_hmat_add(A[m+1:end,:], B[1:n,:],scalar, H.children[2,1], eps)
+        A22, B22 = rkmat_hmat_add(A[m+1:end,:], B[n+1:end,:],scalar, H.children[2,2], eps)
+        A0 = [A11 A12 zeros(size(A11,1), size(A21,2)) zeros(size(A11,1), size(A22,2))
+              zeros(size(A21,1), size(A11,2)) zeros(size(A21,1), size(A12,2)) A21 A22]
+        B0 = [B11   zeros(size(B11,1), size(B12,2)) B21     zeros(size(B11,1), size(B22,2))
+            zeros(size(B12,1), size(B11,2)) B12     zeros(size(B12,1), size(B21,2))  B22]
+        # @show size(A11), size(B11)
+        # @show size(A12), size(B12)
+        # @show size(A21), size(B21)
+        # @show size(A22), size(B22)
+        # println(size(A0), size(B0))
+        A, B = compress_low_rank(A0, B0, eps)
+        # @show "H.is_hmat = ", pointwise_error(A*B', C)
+        return A, B
+    end
+
+    error("Invalid")
+end
+
 # Perform a = a + scalar * b
 # the format of a is preserved
 function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
@@ -52,9 +118,10 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_fullmatrix && b.is_hmat
         # @timeit tos "full hmat - hadd" begin
-        c = copy(b)
-        @timeit tos "fmat!" to_fmat!(c)
-        a.C += scalar * c.C
+        # c = copy(b)
+        # @timeit tos "fmat!" to_fmat!(c)
+        @timeit tos "fmat!" a.C += scalar * full_hmat_add(a.C, b)
+        # a.C += scalar * c.C
     # end
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_rkmatrix && b.is_rkmatrix
@@ -62,11 +129,12 @@ function hmat_add!( a, b, scalar = 1.0, eps=1e-10)
         # println(maximum(p-to_fmat(a)))
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_rkmatrix && b.is_hmat
-        # TODO: is that so?
-        @timeit tos "to_fmat!" C = to_fmat(b)    # bottleneck
-        # d = a.A*a.B' + scalar*C
-        BLAS.gemm!('N','T',1.0,a.A, a.B, scalar, C)
-        a.A, a.B = compress(C, eps)
+        # # TODO: is that so?
+        # @timeit tos "to_fmat hmat_add!" C = to_fmat(b)    # bottleneck
+        # # d = a.A*a.B' + scalar*C
+        # BLAS.gemm!('N','T',1.0,a.A, a.B, scalar, C)
+        # a.A, a.B = compress(C, eps)
+        a.A, a.B = rkmat_hmat_add(a.A, a.B, scalar, b, eps)
         # println(maximum(p-to_fmat(a)))
         # @assert maximum(p-to_fmat(a))<1e-6
         # error("Not implemented yet")

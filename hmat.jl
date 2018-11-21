@@ -239,6 +239,29 @@ function hmat_from_children(h11, h12, h21, h22, s, t)
     return H
 end
 
+function _rkmat_add!(A1, B1, A2, B2, eps)
+    if size(A2,2)==0 
+        @assert size(B2,2)==0
+        return A1, B1
+    end
+
+    if size(A1,2)==0
+        @assert size(B1,2)==0
+        return A2, B2
+    end
+    
+    FAQ, FAR = qr([A1 A2])
+    FBQ, FBR = qr([B1 B2])
+
+    W = FAR*FBR'
+    U,V = compress(W, eps, "svd")
+    r = size(U,1)
+    A = FAQ * U
+    V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
+    B =  FBQ* V # find ways to disable bounds check
+    return A, B
+end
+
 function rkmat_add!(a, b, scalar, method=1, eps=1e-10)
     A1, B1, A2, B2 = a.A, a.B, scalar*b.A, b.B
     if size(A2,2)==0 

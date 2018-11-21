@@ -152,6 +152,7 @@ end
 
 function test_case_2(n = 10, tol=1e-5; rundense=false)
     # for n = [10,11,12,13,14]
+    reset_timer!(tos)
     
     h = 1/2^n
     X = collect(0:2^n-1)*h
@@ -192,12 +193,12 @@ function test_case_2(n = 10, tol=1e-5; rundense=false)
     y1 = H\x
     y2 = A\x
     println("Solve Error = ", rel_error(y2, y1))
-    # C = to_fmat(H)
-    # G = A[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
-    # println("LU Matrix Error = $(maximum(abs.(G)))")
+    C = to_fmat(H)
+    G = A[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
+    println("LU Matrix Error = $(maximum(abs.(G)))")
 
-    # G = HH[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
-    # println("LU Operator Error = $(maximum(abs.(G)))")
+    G = HH[H.P,:] - (LowerTriangular(C)-diagm(0=>diag(C))+UniformScaling(1.0))*UpperTriangular(C)
+    println("LU Operator Error = $(maximum(abs.(G)))")
 
     
 end

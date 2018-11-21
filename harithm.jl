@@ -62,7 +62,7 @@ end
 function rkmat_hmat_add(A::Array{Float64}, B::Array{Float64}, scalar::Float64, H::Hmat, eps::Float64)
     # @show size(A,1), size(A,2),size(B,1), size(B,2),H.m, H.n
     # @assert size(A,2)==size(B,2) && size(A,1)==H.m && size(B,1)==H.n
-    eps = 1e-10 #TODO: Change in the future 
+    # eps = 1e-10 #TODO: Change in the future 
     # C = A*B'+scalar*to_fmat(H)
     if H.is_fullmatrix
         C = A*B' + scalar*H.C

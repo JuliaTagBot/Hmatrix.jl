@@ -46,14 +46,6 @@ if !@isdefined Hmat
     end
 end
 
-if !@isdefined Tolerance
-    @with_kw mutable struct Tolerance
-        eps_rkmat_add::Float64 = 1e-6  # mainly for LU
-        eps_compress::Float64 = 1e-6   # mainly for construction
-        compress_method::String = "svd"
-        lu_compress_method::String = "svd"
-    end
-end
 
 include("cluster.jl")
 include("harithm.jl")
@@ -253,23 +245,23 @@ function getu(A, unitdiag)
     end
 end
 
-function transpose!(a::Hmat)
-    a.m, a.n = a.n, a.m
-    a.s, a.t = a.t, a.s
-    if a.is_rkmatrix
-        a.A, a.B = a.B, a.A
-    elseif a.is_fullmatrix
-        # a.C = a.C'
-        @timeit tos "b2" a.C = a.C'   # bottleneck
-    else
-        for i = 1:2
-            for j = 1:2
-                transpose!(a.children[i,j])
-            end
-        end
-        a.children[1,2], a.children[2,1] = a.children[2,1], a.children[1,2]
-    end
-end
+# function transpose!(a::Hmat)
+#     a.m, a.n = a.n, a.m
+#     a.s, a.t = a.t, a.s
+#     if a.is_rkmatrix
+#         a.A, a.B = a.B, a.A
+#     elseif a.is_fullmatrix
+#         # a.C = a.C'
+#         @timeit tos "b2" a.C = a.C'   # bottleneck
+#     else
+#         for i = 1:2
+#             for j = 1:2
+#                 transpose!(a.children[i,j])
+#             end
+#         end
+#         a.children[1,2], a.children[2,1] = a.children[2,1], a.children[1,2]
+#     end
+# end
 
 ########################### LU related functions ###########################
 
@@ -549,7 +541,7 @@ function LinearAlgebra.:lu!(H::Hmat,eps=1e-10)
         # print(H)
 
         permute_hmat!(H.children[2,1], H.children[2,2].P)
-        H.P = [H.children[1,1].P; H.children[2,2].P .+ H.children[1,1].m]
+        H.P = [H.children[1,1].P; H.children[2,2].P .+ H.children[1,1].m];
         # GG = to_fmat(H)
         # println("***", size(G), maximum(abs.(G-GG)))
     end
@@ -725,6 +717,33 @@ function verify_matvec_error(H::Hmat, C::Array{Float64})
     err = norm(b2-b1)/norm(b2)
     println("Matvec Error = $err")
 end
+
+function verify_lu_error(H1::Hmat, H::Hmat, A::Array{Float64})
+    C = to_fmat(H1)
+    HC = to_fmat(H)
+    U = UpperTriangular(HC)
+    L = (LowerTriangular(HC)-diagm(0=>diag(HC))+UniformScaling(1.0))
+    x = rand(size(A,1))
+    b = C*x
+    # x = U\(L\b[H.P])
+    y = H\b
+    err1 = norm(x-y)/norm(x)
+    # println("Permuation = $(H.P)")
+    
+    G = C[H.P,:] - L*U
+    println("[Operator] LU Error = $(maximum(abs.(G)))")
+
+    G = A[H.P,:] - L*U
+    println("[Matrix  ] LU Error = $(maximum(abs.(G)))")
+    x = rand(size(A,1))
+    b = A*x
+    y = H\b
+    err = norm(x-y)/norm(x)
+    println("[Operator] Solve Error = $err1")
+    println("[Matrix  ] Solve Error = $err")
+    
+end
+
 
 function verify_lu_error(HH::Hmat; A = nothing)
     H = copy(HH)

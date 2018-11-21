@@ -5,7 +5,6 @@ include("hmat.jl")
 
 
 using PyCall
-using IterativeSolvers
 
 @pyimport numpy
 @pyimport scipy.signal as ss
@@ -73,7 +72,7 @@ function pygmres_with_call_back(A, x, op=nothing, verbose=true)
         end
     end
     # solve
-    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop, tol=1e-8)[1]
+    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop, tol=1e-8, maxiter=5000)[1]
     return y, Array{Float64}(err)
 end
 

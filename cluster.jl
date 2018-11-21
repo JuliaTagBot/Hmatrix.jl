@@ -7,7 +7,7 @@ using LinearAlgebra
 function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
     U = zeros(size(A,1), Rrank+1)
     V = zeros(size(A,2), Rrank+1)
-    R = ccall((:aca_wrapper,"/home/kailai/Desktop/hmat/third-party/build/libaca.so"), Cint, (Ref{Cdouble}, Ref{Cdouble},
+    R = ccall((:aca_wrapper,"./third-party/build/libaca.so"), Cint, (Ref{Cdouble}, Ref{Cdouble},
                 Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
     R = min(R, Rrank+1)
     U = U[:,1:R]
@@ -19,7 +19,7 @@ function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
     U = zeros(size(X,1), Rrank)
     V = zeros(size(Y,1), Rrank)
     f_c = @cfunction($f, Cdouble, (Cdouble, Cdouble));
-    ccall((:bbfmm1D,"/Users/kailaix/Desktop/hmat/third-party/build/libbbfmm.dylib"), Cvoid,
+    ccall((:bbfmm1D,"./third-party/build/libbbfmm.so"), Cvoid,
             (Ptr{Cvoid}, Ref{Cdouble}, Ref{Cdouble}, Cdouble, Cdouble, Cdouble, Cdouble, Ref{Cdouble}, Ref{Cdouble}, Cint, Cint, Cint),
             f_c, X, Y, minimum(X), maximum(X) ,minimum(Y), maximum(Y) ,U,V, Rrank, length(X), length(Y))
     return U, V

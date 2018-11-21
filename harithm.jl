@@ -333,6 +333,106 @@ function hmul(a::Hmat, b::Hmat, eps::Float64)
     return H
 end
 
+function Base.:*(a::Hmat, v::AbstractArray{Float64})
+    r = zeros(a.m, size(v,2))
+    for i = 1:size(v,2)
+        @views hmat_matvec!(r[:,i], a, v[:,i], 1.0)
+    end
+    return r
+end
+
+function Base.:*(v::AbstractArray{Float64}, a::Hmat)
+    r = zeros(size(v,1), a.n)
+    for i = 1:size(v,1)
+        r[i,:] = hmat_matvec2(v[i,:], a, 1.0)
+    end
+    return r
+end
+
+# r = r + s*a*v
+function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::AbstractArray{Float64}, s::Float64)
+    if a.is_fullmatrix
+        BLAS.gemm!('N','N',s,a.C,v,1.0,r)
+    elseif a.is_rkmatrix
+        BLAS.gemm!('N','N',s,a.A, a.B'*v,1.0,r)
+    else
+        m, n = a.children[1,1].m, a.children[1,1].n
+        @views begin
+            hmat_matvec!(r[1:m], a.children[1,1], v[1:n], s)
+            hmat_matvec!(r[1:m], a.children[1,2], v[n+1:end], s)
+            hmat_matvec!(r[m+1:end], a.children[2,1], v[1:n], s)
+            hmat_matvec!(r[m+1:end], a.children[2,2], v[n+1:end], s)
+        end
+    end
+end
+
+# r = r + s*v*a
+function hmat_matvec2(v::AbstractArray{Float64}, a::Hmat, s::Float64)
+    if a.is_fullmatrix
+        res = s*v'*a.C
+    elseif a.is_rkmatrix
+        res = s*(v'*a.A)*a.B'
+    else
+        m, n = a.children[1,1].m, a.children[1,1].n
+        @views begin
+            r1 = hmat_matvec2( v[1:m], a.children[1,1], s) + hmat_matvec2(v[m+1:end], a.children[2,1],  s)
+            r2 = hmat_matvec2(v[1:m], a.children[1,2],  s) +  hmat_matvec2( v[m+1:end],a.children[2,2],  s)
+        end
+        res = [r1;r2]
+    end   
+    return res[:]
+end
+
+
+function _rkmat_add!(A1, B1, A2, B2, eps)
+    if size(A2,2)==0 
+        @assert size(B2,2)==0
+        return A1, B1
+    end
+
+    if size(A1,2)==0
+        @assert size(B1,2)==0
+        return A2, B2
+    end
+    
+    FAQ, FAR = qr([A1 A2])
+    FBQ, FBR = qr([B1 B2])
+
+    W = FAR*FBR'
+    U,V = compress(W, eps, "svd")
+    r = size(U,1)
+    A = FAQ * U
+    V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
+    B =  FBQ* V # find ways to disable bounds check
+    return A, B
+end
+
+function rkmat_add!(a, b, scalar, method=1, eps=1e-10)
+    A1, B1, A2, B2 = a.A, a.B, scalar*b.A, b.B
+    if size(A2,2)==0 
+        @assert size(B2,2)==0
+        return A1, B1
+    end
+
+    if size(A1,2)==0
+        @assert size(B1,2)==0
+        return A2, B2
+    end
+    
+    FAQ, FAR = qr([A1 A2])
+    FBQ, FBR = qr([B1 B2])
+
+    W = FAR*FBR'
+    U,V = compress(W, eps, "svd")
+    r = size(U,1)
+    A = FAQ * U
+    V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
+    B =  FBQ* V # find ways to disable bounds check
+    a.A, a.B= A, B
+end
+
+
+
 #=
 function Base.:*(a::Hmat, b::Hmat)
     # R = to_fmat(a)*to_fmat(b)

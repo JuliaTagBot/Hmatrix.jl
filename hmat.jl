@@ -46,76 +46,17 @@ if !@isdefined Hmat
     end
 end
 
+if !@isdefined Tolerance
+    @with_kw mutable struct Tolerance
+        eps_rkmat_add::Float64 = 1e-6  # mainly for LU
+        eps_compress::Float64 = 1e-6   # mainly for construction
+        compress_method::String = "svd"
+        lu_compress_method::String = "svd"
+    end
+end
 
-
-include("geometry.jl")
+include("cluster.jl")
 include("harithm.jl")
-
-function Base.:print(c::Cluster;verbose=false)
-    current_level = [c]
-    while length(current_level)>0
-        if verbose
-            println(join(["$(x.N)($(x.s),$(x.e))" for x in current_level], " "))
-        else
-            println(join(["$(x.N)" for x in current_level], " "))
-        end
-        next_level = []
-        for n in current_level
-            if !n.isleaf 
-                push!(next_level, n.left)
-                push!(next_level, n.right)
-            end
-            current_level = next_level
-        end
-    end
-end
-
-function Base.:print(h::Hmat)
-    G = to_fmat(h)
-    printmat(G)
-end
-
-function PyPlot.:plot(c::Cluster)
-    
-    function helper(level)
-        clevel = 0
-        current_level = [c]
-        while clevel!=level && length(current_level)>0
-            next_level = []
-            for n in current_level
-                if !n.isleaf 
-                    push!(next_level, n.left)
-                    push!(next_level, n.right)
-                end
-                current_level = next_level
-            end
-            clevel += 1
-        end
-        if length(current_level)==0
-            return false
-        end
-        figure()
-        for c in current_level
-            if size(c.X,2)==1
-                scatter(c.X[:,1], ones(size(c.X,1)), marker = ".")
-            elseif size(c.X, 2)==2
-                scatter(c.X[:,1], c.X[:,2], marker = ".")
-            elseif size(c.X,2)==3
-                scatter3D(c.X[:,1], c.X[:,2], c.X[:,3], marker = ".")
-            end
-        end
-        title("Level = $level")
-        savefig("level$level.png")
-        close("all")
-        return true
-    end
-    flag = true
-    l = 0
-    while flag
-        flag = helper(l)
-        l += 1
-    end
-end
 
 const tos = TimerOutput()
 reset_timer!(tos)
@@ -215,15 +156,6 @@ function info(H::Hmat)
     return dmat, rkmat, level, compress_ratio/H.m/H.n
 end
 
-#=
-function fmat(A::Array{Float64})
-    H = Hmat(m = size(A,1), n = size(A,2))
-    H.is_fullmatrix = true
-    H.C = copy(A)
-    return H
-end
-=#
-
 function rkmat(A, B, s, t)
     return Hmat(m = size(A,1), n = size(B,1), s=s, t=t, is_rkmatrix = true, A = A, B = B)
 end
@@ -239,109 +171,7 @@ function hmat_from_children(h11, h12, h21, h22, s, t)
     return H
 end
 
-function _rkmat_add!(A1, B1, A2, B2, eps)
-    if size(A2,2)==0 
-        @assert size(B2,2)==0
-        return A1, B1
-    end
 
-    if size(A1,2)==0
-        @assert size(B1,2)==0
-        return A2, B2
-    end
-    
-    FAQ, FAR = qr([A1 A2])
-    FBQ, FBR = qr([B1 B2])
-
-    W = FAR*FBR'
-    U,V = compress(W, eps, "svd")
-    r = size(U,1)
-    A = FAQ * U
-    V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
-    B =  FBQ* V # find ways to disable bounds check
-    return A, B
-end
-
-function rkmat_add!(a, b, scalar, method=1, eps=1e-10)
-    A1, B1, A2, B2 = a.A, a.B, scalar*b.A, b.B
-    if size(A2,2)==0 
-        @assert size(B2,2)==0
-        return A1, B1
-    end
-
-    if size(A1,2)==0
-        @assert size(B1,2)==0
-        return A2, B2
-    end
-    
-    FAQ, FAR = qr([A1 A2])
-    FBQ, FBR = qr([B1 B2])
-
-    W = FAR*FBR'
-    U,V = compress(W, eps, "svd")
-    r = size(U,1)
-    A = FAQ * U
-    V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
-    B =  FBQ* V # find ways to disable bounds check
-    a.A, a.B= A, B
-end
-
-function Base.:*(a::Hmat, v::AbstractArray{Float64})
-    r = zeros(a.m, size(v,2))
-    for i = 1:size(v,2)
-        @views hmat_matvec!(r[:,i], a, v[:,i], 1.0)
-    end
-    return r
-end
-
-function Base.:*(v::AbstractArray{Float64}, a::Hmat)
-    r = zeros(size(v,1), a.n)
-    for i = 1:size(v,1)
-        r[i,:] = hmat_matvec2(v[i,:], a, 1.0)
-    end
-    return r
-end
-
-function matvec(a::Hmat, v::AbstractArray{Float64}, P::Array{Int64}, Q::Array{Int64})
-    v = v[P,:]
-    r = a*v
-    r = r[Q,:]
-    return r
-end
-
-# r = r + s*a*v
-function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::AbstractArray{Float64}, s::Float64)
-    if a.is_fullmatrix
-        BLAS.gemm!('N','N',s,a.C,v,1.0,r)
-    elseif a.is_rkmatrix
-        BLAS.gemm!('N','N',s,a.A, a.B'*v,1.0,r)
-    else
-        m, n = a.children[1,1].m, a.children[1,1].n
-        @views begin
-            hmat_matvec!(r[1:m], a.children[1,1], v[1:n], s)
-            hmat_matvec!(r[1:m], a.children[1,2], v[n+1:end], s)
-            hmat_matvec!(r[m+1:end], a.children[2,1], v[1:n], s)
-            hmat_matvec!(r[m+1:end], a.children[2,2], v[n+1:end], s)
-        end
-    end
-end
-
-# r = r + s*v*a
-function hmat_matvec2(v::AbstractArray{Float64}, a::Hmat, s::Float64)
-    if a.is_fullmatrix
-        res = s*v'*a.C
-    elseif a.is_rkmatrix
-        res = s*(v'*a.A)*a.B'
-    else
-        m, n = a.children[1,1].m, a.children[1,1].n
-        @views begin
-            r1 = hmat_matvec2( v[1:m], a.children[1,1], s) + hmat_matvec2(v[m+1:end], a.children[2,1],  s)
-            r2 = hmat_matvec2(v[1:m], a.children[1,2],  s) +  hmat_matvec2( v[m+1:end],a.children[2,2],  s)
-        end
-        res = [r1;r2]
-    end   
-    return res[:]
-end
 
 # copy the hmatrix A to H in place.
 function hmat_copy!(H::Hmat, A::Hmat)
@@ -441,7 +271,7 @@ function transpose!(a::Hmat)
     end
 end
 
-
+########################### LU related functions ###########################
 
 # # special function for computing c = c - a*b
 function hmat_sub_mul!(c::Hmat, a::Hmat, b::Hmat, eps)
@@ -766,14 +596,8 @@ function Base.:\(a::Hmat, y::AbstractArray{Float64})
     return w
 end
 
-function solve(a::Hmat, y::AbstractArray{Float64}, P::Int64, Q::Int64)
-    w = deepcopy(y)
-    w = w[P]
-    w = a\w
-    w = w[Q]
-    return w
-end
 
+############################# visualization utilites #############################
 function add_patch(a,b,c,d, n; edgecolor, color)
     return patch.Rectangle([c,a], d-c, b-a, edgecolor=edgecolor, color=color, alpha=0.6)
 end
@@ -802,6 +626,72 @@ function PyPlot.:matshow(H::Hmat)
     ylim([1,H.n])
     gca()[:invert_yaxis]()
     show()
+end
+
+function Base.:print(c::Cluster;verbose=false)
+    current_level = [c]
+    while length(current_level)>0
+        if verbose
+            println(join(["$(x.N)($(x.s),$(x.e))" for x in current_level], " "))
+        else
+            println(join(["$(x.N)" for x in current_level], " "))
+        end
+        next_level = []
+        for n in current_level
+            if !n.isleaf 
+                push!(next_level, n.left)
+                push!(next_level, n.right)
+            end
+            current_level = next_level
+        end
+    end
+end
+
+function Base.:print(h::Hmat)
+    G = to_fmat(h)
+    printmat(G)
+end
+
+function PyPlot.:plot(c::Cluster)
+    
+    function helper(level)
+        clevel = 0
+        current_level = [c]
+        while clevel!=level && length(current_level)>0
+            next_level = []
+            for n in current_level
+                if !n.isleaf 
+                    push!(next_level, n.left)
+                    push!(next_level, n.right)
+                end
+                current_level = next_level
+            end
+            clevel += 1
+        end
+        if length(current_level)==0
+            return false
+        end
+        figure()
+        for c in current_level
+            if size(c.X,2)==1
+                scatter(c.X[:,1], ones(size(c.X,1)), marker = ".")
+            elseif size(c.X, 2)==2
+                scatter(c.X[:,1], c.X[:,2], marker = ".")
+            elseif size(c.X,2)==3
+                scatter3D(c.X[:,1], c.X[:,2], c.X[:,3], marker = ".")
+            end
+        end
+        title("Level = $level")
+        savefig("level$level.png")
+        close("all")
+        return true
+    end
+    flag = true
+    l = 0
+    while flag
+        flag = helper(l)
+        l += 1
+    end
 end
 
 

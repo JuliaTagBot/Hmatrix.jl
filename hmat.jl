@@ -294,6 +294,14 @@ function Base.:*(a::Hmat, v::AbstractArray{Float64})
     return r
 end
 
+function Base.:*(v::AbstractArray{Float64}, a::Hmat)
+    r = zeros(size(v,1), a.n)
+    for i = 1:size(v,1)
+        r[i,:] = hmat_matvec2(v[i,:], a, 1.0)
+    end
+    return r
+end
+
 function matvec(a::Hmat, v::AbstractArray{Float64}, P::Array{Int64}, Q::Array{Int64})
     v = v[P,:]
     r = a*v
@@ -316,6 +324,23 @@ function hmat_matvec!(r::AbstractArray{Float64}, a::Hmat, v::AbstractArray{Float
             hmat_matvec!(r[m+1:end], a.children[2,2], v[n+1:end], s)
         end
     end
+end
+
+# r = r + s*v*a
+function hmat_matvec2(v::AbstractArray{Float64}, a::Hmat, s::Float64)
+    if a.is_fullmatrix
+        res = s*v'*a.C
+    elseif a.is_rkmatrix
+        res = s*(v'*a.A)*a.B'
+    else
+        m, n = a.children[1,1].m, a.children[1,1].n
+        @views begin
+            r1 = hmat_matvec2( v[1:m], a.children[1,1], s) + hmat_matvec2(v[m+1:end], a.children[2,1],  s)
+            r2 = hmat_matvec2(v[1:m], a.children[1,2],  s) +  hmat_matvec2( v[m+1:end],a.children[2,2],  s)
+        end
+        res = [r1;r2]
+    end   
+    return res[:]
 end
 
 # copy the hmatrix A to H in place.
@@ -425,7 +450,7 @@ function hmat_sub_mul!(c::Hmat, a::Hmat, b::Hmat, eps)
 end
 
 # solve a x = b where a is possibly a H-matrix. a is lower triangular. 
-function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag, eps)
+function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag, eps, ul='L')
     if a.is_rkmatrix
         error("A should not be a low-rank matrix")
     end
@@ -434,26 +459,55 @@ function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag, eps)
     else
         cc = 'N'
     end
-    if a.is_fullmatrix 
-        LAPACK.trtrs!('L', 'N', cc, a.C, b)
+
+    if ul == 'L'
+        if a.is_fullmatrix 
+            LAPACK.trtrs!('L', 'N', cc, a.C, b)
+        else
+            # x = getl(to_fmat(a), unitdiag)\b
+            # b[:] = x
+            # return
+            a11 = a.children[1,1]
+            a21 = a.children[2,1]
+            a22 = a.children[2,2]
+            n = a11.m
+            b1 = b[1:n,:]
+            b2 = b[n+1:end, :]
+            mat_full_solve(a11, b1, unitdiag, eps, ul)
+            b2 -= a21 * b1
+            # hmat_sub_mul!(b2, a21, b1, eps)
+            mat_full_solve(a22, b2, unitdiag, eps, ul)
+            # b[:] = [b1;b2]
+            b[1:n,:] = b1
+            b[n+1:end,:] = b2
+            # println("Error = ", maximum(abs.(b-x)))
+        end
     else
-        # x = getl(to_fmat(a), unitdiag)\b
-        # b[:] = x
-        # return
-        a11 = a.children[1,1]
-        a21 = a.children[2,1]
-        a22 = a.children[2,2]
-        n = a11.m
-        b1 = b[1:n,:]
-        b2 = b[n+1:end, :]
-        mat_full_solve(a11, b1, unitdiag, eps)
-        b2 -= a21 * b1
-        # hmat_sub_mul!(b2, a21, b1, eps)
-        mat_full_solve(a22, b2, unitdiag, eps)
-        # b[:] = [b1;b2]
-        b[1:n,:] = b1
-        b[n+1:end,:] = b2
-        # println("Error = ", maximum(abs.(b-x)))
+        if a.is_fullmatrix
+            # p = b/getu(to_fmat(a), unitdiag)
+            c = Array(b')
+            LAPACK.trtrs!('U', 'T', cc, a.C, c)
+            b[:] = c'
+            # @show size(b), size(p)
+            # println("**** trtrs error = ", pointwise_error(b, p))
+        elseif a.is_hmat
+            # p = b/getu(to_fmat(a), unitdiag)
+            a11 = a.children[1,1]
+            a12 = a.children[1,2]
+            a22 = a.children[2,2]
+            n = a11.m
+            # @show size(a11), size(b), size(a)
+            b1 = b[:,1:n]
+            b2 = b[:,n+1:end]
+            mat_full_solve(a11, b1, unitdiag, eps, ul)
+            # b1 = b1/getu(to_fmat(a11), unitdiag)
+            b2 -= b1 * a12
+            mat_full_solve(a22, b2, unitdiag, eps, ul)
+            # b2 = b2/getu(to_fmat(a22), unitdiag)
+            b[:,1:n] = b1
+            b[:,n+1:end] = b2
+            # println("**** mat_full_solve error = ", pointwise_error(b, p))
+        end
     end
 end
 
@@ -527,11 +581,79 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower, unitdiag, eps)
             # error("Not used")
         end
     else
-        @timeit tos "t" transpose!(a)
-        @timeit tos "t" transpose!(b)
-        hmat_trisolve!(a, b, true, unitdiag, eps)
-        @timeit tos "t" transpose!(a)
-        @timeit tos "t" transpose!(b)
+        # @show size(a), size(b)
+        # @assert a.n==b.n
+        # println("Upper Triangular")
+        if a.is_fullmatrix && b.is_fullmatrix
+            # println("Here")
+            # p =b.C/ getu(to_fmat(a), unitdiag)
+            b.C = b.C'
+            LAPACK.trtrs!('U', 'T', cc, a.C, b.C)
+            b.C = b.C'
+            # println("*** trtrs Error = ", pointwise_error(p, to_fmat(b)))
+        elseif a.is_fullmatrix && b.is_rkmatrix
+            if size(b.A,1)==0
+                @warn "b is an empty matrix"
+                return
+            end
+            b.B = b.B'
+            LAPACK.trtrs!('U', 'T', cc, a.C, b.B)
+            b.B = b.B'
+        elseif a.is_hmat && b.is_fullmatrix
+            # println("HF")
+            # p =b.C/ getu(to_fmat(a), unitdiag)
+            # error("To be implemented")
+            mat_full_solve(a, b.C, unitdiag, eps, 'U')
+            # println("*** HF Error = ", pointwise_error(p, to_fmat(b)))
+        elseif a.is_hmat && b.is_rkmatrix
+            # println("FH")
+            # p = to_fmat(b)/getu(to_fmat(a), unitdiag)
+            # error("To be implemented")
+            mat_full_solve(a, b.B', unitdiag, eps, 'U')
+            # println("*** FH Error = ", pointwise_error(p, to_fmat(b)))
+            # error("Not used")
+
+        elseif a.is_hmat && b.is_hmat
+            # println("HH")
+            # p = to_fmat(b)/getu(to_fmat(a), unitdiag)
+            a11, a12, a21, a22 = a.children[1,1], a.children[1,2],a.children[2,1],a.children[2,2]
+            b11, b12, b21, b22 = b.children[1,1], b.children[1,2],b.children[2,1],b.children[2,2]
+            
+            # p = to_fmat(b11)/getu(to_fmat(a11), unitdiag)
+            hmat_trisolve!(a11, b11, islower, unitdiag, eps)
+            # println("*** I Error = ", pointwise_error(p, to_fmat(b11)))
+
+            # p = getl(to_fmat(a11), unitdiag)\to_fmat(b12)
+            hmat_trisolve!(a11, b21, islower, unitdiag, eps)
+            # println("*** II Error = ", pointwise_error(p, to_fmat(b12)))
+
+            # p = to_fmat(b21)-to_fmat(a21)*to_fmat(b11)
+            hmat_sub_mul!(b12, b11, a12, eps)
+            # println("*** III Error = ", pointwise_error(p, to_fmat(b21)))
+
+            # p = to_fmat(b22)-to_fmat(a21)*to_fmat(b12)
+            hmat_sub_mul!(b22, b21, a12, eps)
+            # println("*** IV Error = ", pointwise_error(p, to_fmat(b22)))
+
+            # p = getl(to_fmat(a22), unitdiag)\to_fmat(b21)
+            hmat_trisolve!(a22, b12, islower, unitdiag, eps)
+            # println("*** V Error = ", pointwise_error(p, to_fmat(b21)))
+
+            # p = getl(to_fmat(a22), unitdiag)\to_fmat(b22)
+            hmat_trisolve!(a22, b22, islower, unitdiag, eps)
+            # println("*** VI Error = ", pointwise_error(p, to_fmat(b22)))
+
+            # println("*** H Error = ", pointwise_error(p, to_fmat(b)))
+        
+        else
+            error("Invalid")
+        end
+
+        # @timeit tos "t" transpose!(a)
+        # @timeit tos "t" transpose!(b)
+        # hmat_trisolve!(a, b, true, unitdiag, eps)
+        # @timeit tos "t" transpose!(a)
+        # @timeit tos "t" transpose!(b)
     end
 end
 

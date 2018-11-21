@@ -203,6 +203,40 @@ function test_case_2(n = 10, tol=1e-5; rundense=false)
     
 end
 
+
+function test_case_3(n = 10, tol=1e-2)
+    # for n = [10,11,12,13,14]
+    reset_timer!(tos)
+    
+    h = 1/2^n
+    X = collect(0:2^n-1)*h
+    c = construct_cluster(X, 64)
+    # c = uniform_cluster_1D(2^n, h, 64)
+    f, αs, βs = Merton_Kernel(1.0, 5)
+    function new_f(x,y)
+        if abs(y-x)<h
+            return 10
+        end
+        return f(x,y)
+    end
+    H = construct_hmat_from_expansion(new_f, αs, βs, c, 64, 2^(n-2))
+    H2 = copy(H)
+    x = rand(H.m)
+    @time begin
+        for i = 1:10
+            y1 = H*x
+        end
+    end
+
+    @time lu!(H, 1e-6)
+    @time begin
+        for i = 1:10
+            y1 = H\x
+        end
+    end
+    H2, H 
+end
+
 function new_profile()
     f = open("logs.txt","w")
     Profile.print(f, format=:tree)

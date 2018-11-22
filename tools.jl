@@ -13,10 +13,10 @@ using PyCall
 @pyimport scipy.special as ssp
 
 
-function pygmres(A, x, op=nothing)
+function pygmres(A, x, op=nothing; tol=1e-10, maxiter = 1000)
     N = length(x)
     # convert A
-    if typeof(A)==Array{Float64,2}|| typeof(A)==Hmat
+    if typeof(A)==Array{Float64,2} || typeof(A)==Hmat
         lo = ssl.LinearOperator((N, N), matvec=x->A*x)
     else
         lo = ssl.LinearOperator((N, N), matvec=A)
@@ -26,11 +26,16 @@ function pygmres(A, x, op=nothing)
     if op==nothing
         Mop = ssl.LinearOperator((N, N), matvec=x->x)
     else
-        Mop = ssl.LinearOperator((N, N), matvec=op)
+        
+        if typeof(op)==Array{Float64,2} || typeof(op)==Hmat
+            Mop = ssl.LinearOperator((N, N), matvec=x->op\x)
+        else
+            Mop = ssl.LinearOperator((N, N), matvec=op)
+        end
     end
 
     # solve
-    y = ssl.gmres(lo, x, M = Mop)[1]
+    y = ssl.gmres(lo, x, M = Mop, tol = tol, maxiter=maxiter)[1]
     return y
 end
 
@@ -72,7 +77,7 @@ function pygmres_with_call_back(A, x, op=nothing, verbose=true)
         end
     end
     # solve
-    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop, tol=1e-8, maxiter=5000)[1]
+    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop, tol=1e-8, maxiter=1000)[1]
     return y, Array{Float64}(err)
 end
 

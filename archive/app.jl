@@ -1,6 +1,4 @@
-include("hmat.jl")
-include("hexample.jl")
-include("hconstruct.jl")
+include("../hmat.jl")
 
 using PyCall
 using IterativeSolvers

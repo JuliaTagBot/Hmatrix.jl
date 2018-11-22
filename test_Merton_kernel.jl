@@ -206,7 +206,7 @@ end
 
 function test_case_3(n = 10, tol=1e-2)
     # for n = [10,11,12,13,14]
-    reset_timer!(tos)
+    
     
     h = 1/2^n
     X = collect(0:2^n-1)*h
@@ -219,21 +219,32 @@ function test_case_3(n = 10, tol=1e-2)
         end
         return f(x,y)
     end
-    H = construct_hmat_from_expansion(new_f, αs, βs, c, 64, 2^(n-2))
+    print("Construction     : ")
+    @time H = construct_hmat_from_expansion(new_f, αs, βs, c, 64, 2^(n-2))
     H2 = copy(H)
     x = rand(H.m)
+    print("Matrix Vecotr Mul: ")
     @time begin
         for i = 1:10
             y1 = H*x
         end
     end
 
+    print("LU               : ")
+    GC.enable(false)
+    reset_timer!(tos)
     @time lu!(H, 1e-6)
+    GC.enable(true)
+    GC.gc()
+    # println(tos)
+
+    print("Solve            : ")
     @time begin
         for i = 1:10
-            y1 = H\x
+            H\x
         end
     end
+    
     H2, H 
 end
 

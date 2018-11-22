@@ -23,7 +23,8 @@ packages = [
     "JLD2",
     "StatsFuns",
     "FileIO",
-    "Interpolations"
+    "Interpolations",
+    "BenchmarkTools"
 ]
 
 # step 1: install packages

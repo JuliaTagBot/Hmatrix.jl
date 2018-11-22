@@ -26,7 +26,7 @@ function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
 end
 
 # column pivoting RRQR
-function rrqr(A,tol)
+function rrqr(A::Array{Float64},tol::Float64)
     F = pqrfact(A, rtol = tol)
     ip = inverse_permutation(F.p)
     Q = F.Q
@@ -35,7 +35,7 @@ function rrqr(A,tol)
 end
 
 
-function rank_truncate(S, eps=1e-10)
+function rank_truncate(S::Array{Float64}, eps::Float64=1e-10)
     if length(S)==0
         return 0
     end
@@ -50,11 +50,9 @@ end
 # C is a full matrix
 # the function will try to compress C with given tolerance eps
 # Rrank is required when method = "aca"
-function compress(C, eps=1e-10, method="svd"; Rrank = nothing)
-    if Rrank == nothing
-        # @warn "Rrank=nothing, fall back to rrqr"
-        method = "rrqr"
-    end
+function compress(C::Array{Float64}, eps::Float64=1e-10, method::String="svd";
+                     Rrank::Int64 = -1)
+
     # method = "rrqr"
     # if the matrix is a zero matrix, return zero vectors
     if sum(abs.(C))<1e-5
@@ -175,12 +173,11 @@ function kernel_svd(f::Function, X::Array{Float64}, Y::Array{Float64}, eps::Floa
     return k, U, S, V
 end
 
-
-
-function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int64,
+function construct_hmat(f::Function, c::Cluster, Nleaf::Int64, Rrank::Int64,
     eps::Float64, MaxBlock::Int64, method="svd")
-    c = construct_cluster(X, Nleaf)
-    P = c.P
+    if MaxBlock==-1
+        MaxBlock = div(size(c.X,1), 4)
+    end
     h = Hmat()
     function helper(H::Hmat, s::Cluster, t::Cluster)
         H.m = s.N
@@ -202,6 +199,7 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
             else
                 H.is_hmat = true
             end
+            # println("$(size(A)), $Rrank, $k ")
             
         end
 
@@ -221,8 +219,13 @@ function construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int
 
     end
     helper(h, c, c)
-    return h, P
+    return h
 end
+
+construct_hmat(f::Function, X::Array{Float64}, Nleaf::Int64, Rrank::Int64,
+    eps::Float64, MaxBlock::Int64, method="svd") = construct_hmat(f, construct_cluster(X, Nleaf), Nleaf, Rrank,
+                                                                eps, MaxBlock, method)
+    
 
 function construct_hmat(A::Array{Float64}, c::Cluster, Nleaf::Int64, Rrank::Int64,
                 eps::Float64, MaxBlock::Int64)
@@ -289,7 +292,7 @@ function construct_hmat(A::Array{Float64}, X::Array{Float64}, Nleaf::Int64, Rran
 end
 
 
-function cluster_from_list(l)
+function cluster_from_list(l::Array{Int64}, X::Union{Nothing, Array{Float64}}=nothing)
     function helper(cs)
         if length(cs)==1
             return cs[1]
@@ -300,6 +303,9 @@ function cluster_from_list(l)
             c1 = cs[i]
             c2 = cs[i+1]
             c = Cluster(m = c1.N, n = c2.N, left = c1, right = c2, N = c1.N + c2.N, isleaf = false, s = c1.s, e = c2.e, P=c1.s:c2.e)
+            if X!=nothing
+                c.X = X[c.s:c.e,:]
+            end
             push!(next_list, c)
         end
         if mod(length(cs),2)==1
@@ -310,7 +316,11 @@ function cluster_from_list(l)
     cs = []
     s = 1
     for r in l
-        push!(cs, Cluster(N = r, isleaf = true, s = s, e = s+r-1, P=s:s+r-1))
+        c = Cluster(N = r, isleaf = true, s = s, e = s+r-1, P=s:s+r-1)
+        if X!=nothing
+            c.X = X[c.s:c.e,:]
+        end
+        push!(cs, c)
         s = s+r
     end
     return helper(cs)

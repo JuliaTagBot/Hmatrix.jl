@@ -1,0 +1,65 @@
+% This file was created by matplotlib2tikz v0.6.18.
+\begin{tikzpicture}
+
+\definecolor{color0}{rgb}{0.12156862745098,0.466666666666667,0.705882352941177}
+\definecolor{color1}{rgb}{1,0.498039215686275,0.0549019607843137}
+\definecolor{color2}{rgb}{0.172549019607843,0.627450980392157,0.172549019607843}
+\definecolor{color3}{rgb}{0.83921568627451,0.152941176470588,0.156862745098039}
+
+\begin{axis}[
+legend cell align={left},
+legend entries={{H-matrix},{Direct},{$O(N^2)$},{$O(N)$}},
+legend style={at={(0.03,0.97)}, anchor=north west, draw=white!80.0!black},
+tick align=outside,
+tick pos=left,
+title={Matrix Vector Multiplication},
+x grid style={white!69.01960784313725!black},
+xlabel={Matrix Size},
+xmin=168.89701257893, xmax=1589344.0144452,
+xmode=log,
+y grid style={white!69.01960784313725!black},
+ylabel={Time (sec)},
+ymin=3.63621989286145e-05, ymax=29.7358557499936,
+ymode=log
+]
+\addlegendimage{no markers, color0}
+\addlegendimage{no markers, color1}
+\addlegendimage{no markers, color2}
+\addlegendimage{no markers, color3}
+\addplot [semithick, color0, mark=*, mark size=3, mark options={solid}]
+table [row sep=\\]{%
+256	6.75159e-05 \\
+1024	0.0007449968 \\
+4096	0.0048214474 \\
+16384	0.0404143523 \\
+65536	0.2325246504 \\
+262144	1.327147896 \\
+1048576	6.657581154 \\
+};
+\addplot [semithick, color1, mark=*, mark size=3, mark options={solid}]
+table [row sep=\\]{%
+1024	0.0001598307 \\
+4096	0.1495839336 \\
+16384	0.0454957939 \\
+65536	0.8845565423 \\
+};
+\addplot [semithick, color2, dashed]
+table [row sep=\\]{%
+1024	0.00160149105928211 \\
+4096	0.0256238569485137 \\
+16384	0.40998171117622 \\
+65536	6.55970737881952 \\
+};
+\addplot [semithick, color3, dashed]
+table [row sep=\\]{%
+256	0.00390989028145047 \\
+1024	0.0156395611258019 \\
+4096	0.0625582445032074 \\
+16384	0.25023297801283 \\
+65536	1.00093191205132 \\
+262144	4.00372764820528 \\
+1048576	16.0149105928211 \\
+};
+\end{axis}
+
+\end{tikzpicture}

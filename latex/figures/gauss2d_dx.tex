@@ -1,0 +1,39 @@
+% This file was created by matplotlib2tikz v0.6.18.
+\begin{tikzpicture}
+
+\definecolor{color0}{rgb}{0.12156862745098,0.466666666666667,0.705882352941177}
+\definecolor{color1}{rgb}{1,0.498039215686275,0.0549019607843137}
+
+\begin{axis}[
+legend cell align={left},
+legend entries={{$\mathcal{O}(h^{-1})$}},
+legend style={draw=white!80.0!black},
+tick align=outside,
+tick pos=left,
+x grid style={white!69.01960784313725!black},
+xlabel={1/h},
+xmin=831.746453868785, xmax=80684.2802729723,
+xmode=log,
+y grid style={white!69.01960784313725!black},
+ylabel={$||u-u_{ref}||_\infty$},
+ymin=0.0137424356450106, ymax=0.411334444864694,
+ymode=log
+]
+\addlegendimage{no markers, color1}
+\addplot [semithick, color0, mark=asterisk*, mark size=3, mark options={solid}, forget plot]
+table [row sep=\\]{%
+1024	0.23793984337199 \\
+4096	0.11245101302681 \\
+16384	0.0478750325889632 \\
+65536	0.0160383834381034 \\
+};
+\addplot [semithick, color1, dashed]
+table [row sep=\\]{%
+1024	0.352450554567716 \\
+4096	0.176225277283858 \\
+16384	0.088112638641929 \\
+65536	0.0440563193209645 \\
+};
+\end{axis}
+
+\end{tikzpicture}

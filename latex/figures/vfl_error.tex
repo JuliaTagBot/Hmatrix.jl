@@ -1,0 +1,60 @@
+% This file was created by matplotlib2tikz v0.6.18.
+\begin{tikzpicture}
+
+\definecolor{color0}{rgb}{0.12156862745098,0.466666666666667,0.705882352941177}
+\definecolor{color1}{rgb}{1,0.498039215686275,0.0549019607843137}
+\definecolor{color2}{rgb}{0.172549019607843,0.627450980392157,0.172549019607843}
+\definecolor{color3}{rgb}{0.83921568627451,0.152941176470588,0.156862745098039}
+
+\begin{axis}[
+legend cell align={left},
+legend entries={{Direct Method},{$\mathcal{H}-matrix$},{$O(N)$},{$O(N^2)$}},
+legend style={at={(0.03,0.97)}, anchor=north west, draw=white!80.0!black},
+tick align=outside,
+tick pos=left,
+x grid style={white!69.01960784313725!black},
+xmin=598.433501631519, xmax=8459.58654754124,
+xmode=log,
+y grid style={white!69.01960784313725!black},
+ymin=0.00449806245914075, ymax=3.04829194209777,
+ymode=log
+]
+\addlegendimage{no markers, color0}
+\addlegendimage{no markers, color1}
+\addlegendimage{no markers, color2}
+\addlegendimage{no markers, color3}
+\addplot [semithick, color0, mark=*, mark size=3, mark options={solid}]
+table [row sep=\\]{%
+675	0.00604935 \\
+1200	0.0213585 \\
+2700	0.0966806 \\
+4800	0.339401 \\
+7500	0.972231 \\
+};
+\addplot [semithick, color1, mark=*, mark size=3, mark options={solid}]
+table [row sep=\\]{%
+675	0.00604935 \\
+1200	0.0213585 \\
+2700	0.0578209 \\
+4800	0.138662 \\
+7500	0.250155 \\
+};
+\addplot [semithick, color2, dashed]
+table [row sep=\\]{%
+675	0.0108796409922398 \\
+1200	0.0193415839862041 \\
+2700	0.0435185639689592 \\
+4800	0.0773663359448165 \\
+7500	0.120884899913776 \\
+};
+\addplot [semithick, color3, dashed]
+table [row sep=\\]{%
+675	0.0183593941744047 \\
+1200	0.0580247519586123 \\
+2700	0.293750306790475 \\
+4800	0.928396031337798 \\
+7500	2.2665918733833 \\
+};
+\end{axis}
+
+\end{tikzpicture}

@@ -1,0 +1,79 @@
+% This file was created by matplotlib2tikz v0.6.18.
+\begin{tikzpicture}
+
+\definecolor{color0}{rgb}{0.12156862745098,0.466666666666667,0.705882352941177}
+\definecolor{color1}{rgb}{1,0.498039215686275,0.0549019607843137}
+\definecolor{color2}{rgb}{0.172549019607843,0.627450980392157,0.172549019607843}
+\definecolor{color3}{rgb}{0.83921568627451,0.152941176470588,0.156862745098039}
+
+\begin{axis}[
+legend cell align={left},
+legend entries={{H-matrix},{Direct},{$O(N^3)$},{$O(N)$}},
+legend style={draw=white!80.0!black},
+tick align=outside,
+tick pos=left,
+title={LU},
+x grid style={white!69.01960784313725!black},
+xlabel={Matrix Size},
+xmin=724.077343935024, xmax=1482910.40037893,
+xmode=log,
+y grid style={white!69.01960784313725!black},
+ylabel={Time (sec)},
+ymin=0.00224889443808227, ymax=27228.4480947519,
+ymode=log
+]
+\addlegendimage{no markers, color0}
+\addlegendimage{no markers, color1}
+\addlegendimage{no markers, color2}
+\addlegendimage{no markers, color3}
+\addplot [semithick, color0, mark=*, mark size=3, mark options={solid}]
+table [row sep=\\]{%
+1024	0.033150665 \\
+2048	0.089554581 \\
+4096	0.215134275 \\
+8192	0.474807033 \\
+16384	1.057615582 \\
+32768	2.172390986 \\
+65536	4.970435166 \\
+131072	10.88718557 \\
+262144	23.683602644 \\
+524288	59.203750851 \\
+1048576	125.118831592 \\
+};
+\addplot [semithick, color1, mark=*, mark size=3, mark options={solid}]
+table [row sep=\\]{%
+1024	0.012532439 \\
+2048	0.068024574 \\
+4096	0.424812388 \\
+8192	1.974486374 \\
+16384	14.869242377 \\
+32768	108.248607665 \\
+65536	835.887055881 \\
+};
+\addplot [semithick, color2, dashed]
+table [row sep=\\]{%
+1024	0.0494909710868151 \\
+2048	0.395927768694522 \\
+4096	3.16742214955616 \\
+8192	25.3393771964493 \\
+16384	202.715017571595 \\
+32768	1621.72014057276 \\
+65536	12973.761124582 \\
+};
+\addplot [semithick, color3, dashed]
+table [row sep=\\]{%
+1024	0.00471982680194999 \\
+2048	0.00943965360389999 \\
+4096	0.0188793072078 \\
+8192	0.0377586144155999 \\
+16384	0.0755172288311999 \\
+32768	0.1510344576624 \\
+65536	0.302068915324799 \\
+131072	0.604137830649599 \\
+262144	1.2082756612992 \\
+524288	2.4165513225984 \\
+1048576	4.83310264519679 \\
+};
+\end{axis}
+
+\end{tikzpicture}

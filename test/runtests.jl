@@ -1,2 +1,2 @@
-using Hmat
+using Hmatrix
 using Test

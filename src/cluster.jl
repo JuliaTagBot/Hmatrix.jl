@@ -1,96 +1,37 @@
-# cluster.jl
-# This file contains the utilites for Cluster struct. It also contains basic functions to generate H-matrix
-using PyCall
-using LinearAlgebra
-@pyimport sklearn.cluster as cluster
+export 
+Cluster,
+Hmat,
+bisect_cluster
 
-function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
-    U = zeros(size(A,1), Rrank+1)
-    V = zeros(size(A,2), Rrank+1)
-    R = ccall((:aca_wrapper,"./third-party/build/libaca.so"), Cint, (Ref{Cdouble}, Ref{Cdouble},
-                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
-    R = min(R, Rrank+1)
-    U = U[:,1:R]
-    V = V[:,1:R]
-    return U, V
+@with_kw mutable struct Cluster
+    X::Array{Float64}  = Array{Float64}([])     # particle position
+    P::Array{Int64,1} = Array{Int64}([])        # permutation
+    left::Union{Cluster,Nothing} = nothing      # left child cluster
+    right::Union{Cluster,Nothing} = nothing     # right child cluster
+    m::Int64 = 0                                # |left child|
+    n::Int64 = 0                                # |right child|
+    N::Int64 = 0                                # number of points
+    isleaf::Bool = false                        # if it is leaf
+    s::Int64 = 0                                # start index after permutation
+    e::Int64 = 0                                # end index after permutation
 end
 
-function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
-    U = zeros(size(X,1), Rrank)
-    V = zeros(size(Y,1), Rrank)
-    f_c = @cfunction($f, Cdouble, (Cdouble, Cdouble));
-    ccall((:bbfmm1D,"./third-party/build/libbbfmm.so"), Cvoid,
-            (Ptr{Cvoid}, Ref{Cdouble}, Ref{Cdouble}, Cdouble, Cdouble, Cdouble, Cdouble, Ref{Cdouble}, Ref{Cdouble}, Cint, Cint, Cint),
-            f_c, X, Y, minimum(X), maximum(X) ,minimum(Y), maximum(Y) ,U,V, Rrank, length(X), length(Y))
-    return U, V
+@with_kw mutable struct Hmat
+    A::Array{Float64,2} = zeros(0,0)
+    B::Array{Float64,2} = zeros(0,0)
+    C::Array{Float64,2} = zeros(0,0)
+    P::Array{Int64,1} = Array{Int64}([])
+    is_rkmatrix::Bool = false
+    is_fullmatrix::Bool = false
+    is_hmat::Bool = false
+    m::Int = 0
+    n::Int = 0
+    children::Array{Hmat} = Array{Hmat}([])
+    s::Union{Cluster,Nothing} = nothing
+    t::Union{Cluster,Nothing} = nothing # used in the construction phase and later abondoned
 end
-
-# column pivoting RRQR
-function rrqr(A::Array{Float64},tol::Float64)
-    F = pqrfact(A, rtol = tol)
-    ip = inverse_permutation(F.p)
-    Q = F.Q
-    R = F.R[:,ip]'
-    return Q, R
-end
-
-
-function rank_truncate(S::Array{Float64}, eps::Float64=1e-10)
-    if length(S)==0
-        return 0
-    end
-    k = findlast(S/S[1] .> eps)
-    if isa(k, Nothing)
-        return 0
-    else
-        return k
-    end
-end
-
-# C is a full matrix
-# the function will try to compress C with given tolerance eps
-# Rrank is required when method = "aca"
-function compress(C::Array{Float64}, eps::Float64=1e-10, method::String="svd";
-                     Rrank::Int64 = -1)
-
-    # method = "rrqr"
-    # if the matrix is a zero matrix, return zero vectors
-    if sum(abs.(C))<1e-5
-        A = zeros(size(C,1),1)
-        B = zeros(size(C,2),1)
-        return A, B
-    end
-
-    if method=="svd"
-        if size(C,1)==size(C,2)
-            U,S,V = psvd(C)    # fast svd is availabel
-        else
-            U,S,V = svd(C)
-        end
-        k = findlast(S/S[1] .> eps)
-        @assert !isa(k, Nothing) # k should never be zero
-        A = U[:,1:k]
-        B = (diagm(0=>S[1:k])*V'[1:k,:])'
-        return A, B
-    end
-
-    if method=="aca"             # more accurate
-        U,V = aca(C, eps, Rrank);
-        return U,V
-    end
-
-    if method=="rrqr"
-        U,V = rrqr(C, eps)
-        return U,V
-    end
-
-    error("Method $method not implemented yet")
-
-end
-
 
 function bisect_cluster(X::Array{Float64})
-    # code here
     clf = cluster.KMeans(n_clusters=2, random_state=0)
     clf[:fit](X)
     L = clf[:labels_]

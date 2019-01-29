@@ -2,3 +2,5 @@ flap/*
 *.png
 .DS_Store
 .*
+build.log
+build/

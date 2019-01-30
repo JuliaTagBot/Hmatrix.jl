@@ -10,8 +10,8 @@ plot
     MaxBlock::Int64 = -1
     MinBlock::Int64 = 64
     Kernel::Union{Function, Nothing} = nothing
-    α::Union{Function, Nothing} = nothing
-    β::Union{Function, Nothing} = nothing
+    α::Union{Array{Function,1}, Nothing} = nothing
+    β::Union{Array{Function,1}, Nothing} = nothing
     CompMethod::String = "svd"
     ConsMethod::String = "bbfmm"
     εTrunc::Float64 = 1e-10

@@ -314,11 +314,17 @@ function hmul(a::Hmat, b::Hmat)
 end
 Base.:*(a::Hmat, b::Hmat) = a*b
 
-function Base.:*(a::Hmat, v::AbstractArray{Float64})
+function Base.:*(a::Hmat, v::AbstractArray{Float64,2})
     r = zeros(a.m, size(v,2))
     for i = 1:size(v,2)
         @views hmat_matvec!(r[:,i], a, v[:,i], 1.0)
     end
+    return r
+end
+
+function Base.:*(a::Hmat, v::AbstractArray{Float64,1})
+    r = zeros(a.m)
+    hmat_matvec!(r, a, v, 1.0)
     return r
 end
 

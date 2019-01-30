@@ -8,4 +8,6 @@ Hparams.verbose = true
 include("cluster.jl")
 include("harithm.jl")
 include("lu.jl")
+include("tools.jl")
+
 

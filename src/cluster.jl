@@ -36,11 +36,7 @@ end
 function NewHmat()
     c = construct_cluster(Hparams.Geom, Hparams.MinBlock)
     compute_geom_info(c)
-    if Hparams.Kernel!=nothing && Hparams.α==nothing 
-        return c, __c1(c)
-    else
-        error("Not implemented yet")
-    end
+    return c, __c1(c)
 end
 
 FullMat(F::Function, X::Array,Y::Array) = kernel_full(F, X, Y)
@@ -73,6 +69,13 @@ function __c1(c)
                     if max(s.diam, t.diam)<=norm(s.center-t.center)-(s.diam+t.diam)/2
                         H.is_rkmatrix = true
                         U, V = bbfmm(Kernel, s.X, t.X, Hparams.MaxRank)
+                    else
+                        H.is_hmat = true
+                    end
+                elseif Hparams.ConsMethod == "separate"
+                    if max(s.diam, t.diam)<=norm(s.center-t.center)-(s.diam+t.diam)/2
+                        H.is_rkmatrix = true
+                        U, V = _rk_matrix(Hparams.α, Hparams.β, s.X, t.X)
                     else
                         H.is_hmat = true
                     end
@@ -130,6 +133,31 @@ function compute_geom_info(c::Cluster)
     end
     helper(c)
 end
+
+function _rk_matrix(alpha, beta, x, y)
+    xbar = mean(x, dims=1)
+    t0 = x .- xbar
+    t = y .- xbar
+    n = size(x,1)
+    m = size(y,1)
+    r = length(alpha)
+    U = zeros(n, r)
+    V = zeros(m, r)
+    for i = 1:r
+        if size(x,2)==1
+            U[:,i] = alpha[i].(t0)
+            V[:,i] = beta[i].(t)
+        elseif size(x,2)==2
+            U[:,i] = alpha[i].(t0[:,1], t0[:,2])
+            V[:,i] = beta[i].(t[:,1],t[:,2])
+        else
+            error("Not implemented yet")
+        end
+    end
+    return U, V
+end
+
+
 #====== Legacy codes ======#
 
 function bisect_cluster(X::Array{Float64})

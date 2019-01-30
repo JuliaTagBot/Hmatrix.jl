@@ -1,87 +1,65 @@
-# tools.jl
-function pygmres(A, x, op=nothing; tol=1e-10, maxiter = 1000)
-    N = length(x)
+
+export 
+gmres,
+bicgstab
+
+const LinearOperator = Union{Nothing, Array{Float64,2}, Hmat, Function}
+function gmres(A::LinearOperator, b::Array{Float64}, x0=nothing; 
+        tol::Float64=1e-05, restart::Union{Int64, Nothing}=nothing, maxiter::Union{Int64, Nothing}=nothing, 
+        M::LinearOperator=nothing, callback::Union{Function, Nothing}=nothing)
+    N = length(b)
     # convert A
     if typeof(A)==Array{Float64,2} || typeof(A)==Hmat
         lo = ssl.LinearOperator((N, N), matvec=x->A*x)
-    else
-        lo = ssl.LinearOperator((N, N), matvec=A)
+    elseif isa(A, Function)
+        lo = ssl.LinearOperator((N, N), matvec=A) # A is a linear operator
     end
 
-    # make LinearOperator
-    if op==nothing
-        Mop = ssl.LinearOperator((N, N), matvec=x->x)
-    else
-        
-        if typeof(op)==Array{Float64,2} || typeof(op)==Hmat
-            Mop = ssl.LinearOperator((N, N), matvec=x->op\x)
+    if M!=nothing        
+        if typeof(M)==Array{Float64,2} || typeof(M)==Hmat
+            Mop = ssl.LinearOperator((N, N), matvec=x->M\x)
         else
-            Mop = ssl.LinearOperator((N, N), matvec=op)
+            Mop = ssl.LinearOperator((N, N), matvec=M)
         end
+    else
+        Mop = nothing
     end
-
     # solve
-    y = ssl.gmres(lo, x, M = Mop, tol = tol, maxiter=maxiter)[1]
+    y, info = ssl.gmres(lo, b, x0, tol=tol, restart = restart, maxiter=maxiter, M=Mop, callback=callback)
+    if info<0
+        @warn "illegal input or breakdown"
+    elseif info>0
+        @warn "convergence to tolerance not achieved, number of iterations"
+    end
     return y
 end
 
-function pycallback(rk)
-    global cnt
-    global err
-    global verbose_
-    push!(err, norm(rk))
-    if verbose_
-        println("Iteration $cnt, Error = $(err[end])")
-    end
-    cnt += 1
-end
-
-function pygmres_with_call_back(A, x, op=nothing, verbose=true)
-    global err
-    global cnt
-    global verbose_
-    verbose_ = verbose
-    cnt = 0
-    err = []
-    N = length(x)
+function bicgstab(A::LinearOperator, b::Array{Float64}, x0=nothing; 
+    tol::Float64=1e-05, maxiter::Union{Int64, Nothing}=nothing, 
+    M::LinearOperator=nothing, callback::Union{Function, Nothing}=nothing)
+    N = length(b)
     # convert A
     if typeof(A)==Array{Float64,2} || typeof(A)==Hmat
         lo = ssl.LinearOperator((N, N), matvec=x->A*x)
-    else
-        lo = ssl.LinearOperator((N, N), matvec=A)
+    elseif isa(A, Function)
+        lo = ssl.LinearOperator((N, N), matvec=A) # A is a linear operator
     end
 
-    # make LinearOperator
-    if op==nothing
-        Mop = ssl.LinearOperator((N, N), matvec=x->x)
-    else
-        
-        if typeof(op)==Array{Float64,2} || typeof(op)==Hmat
-            Mop = ssl.LinearOperator((N, N), matvec=x->op\x)
+    if M!=nothing        
+        if typeof(M)==Array{Float64,2} || typeof(M)==Hmat
+            Mop = ssl.LinearOperator((N, N), matvec=x->M\x)
         else
-            Mop = ssl.LinearOperator((N, N), matvec=op)
+            Mop = ssl.LinearOperator((N, N), matvec=M)
         end
+    else
+        Mop = nothing
     end
     # solve
-    y = ssl.gmres(lo, x, callback = PyCall.jlfun2pyfun(pycallback), M = Mop, tol=1e-8, maxiter=1000)[1]
-    return y, Array{Float64}(err)
-end
-
-function hprecond(Hpred_::Hmat, H::Union{Hmat, Array{Float64,2}}, A::Array{Float64})
-    Hpred = copy(Hpred_)
-    lu!(Hpred)
-    x = rand(size(A,1))
-    b = A*x
-    y2, err2 = pygmres_with_call_back(H, b, nothing, true)
-    y1, err1 = pygmres_with_call_back(H, b, Hpred, true)
-    
-    println("Error1 = ", rel_error(y1, x))
-    println("Error2 = ", rel_error(y2, x))
-    semilogy(err1,"o-",label="With Preconditioner")
-    semilogy(err2, "+-", label="Without Preconditioner")
-    legend()
-    xlabel("Iteration")
-    ylabel("Error")
-    savefig("Iter.png")
-    close("all")
+    y, info = ssl.bicgstab(lo, b, x0, tol=tol, maxiter=maxiter, M=Mop, callback=callback)
+    if info<0
+        @warn "illegal input or breakdown"
+    elseif info>0
+        @warn "convergence to tolerance not achieved, number of iterations"
+    end
+    return y
 end

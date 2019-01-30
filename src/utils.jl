@@ -13,6 +13,7 @@ plot
     α::Union{Function, Nothing} = nothing
     β::Union{Function, Nothing} = nothing
     CompMethod::String = "svd"
+    ConsMethod::String = "bbfmm"
     εTrunc::Float64 = 1e-10
     verbose::Bool = false
     adm::Union{String,Nothing} = "strong"

@@ -68,13 +68,11 @@ function __c1(c)
                     H.is_hmat = true
                 end
             else
-                if Hparams.CompMethod == "bbfmm"
+                if Hparams.ConsMethod == "bbfmm"
                     # dicide if the block is admissible
                     if max(s.diam, t.diam)<=norm(s.center-t.center)-(s.diam+t.diam)/2
                         H.is_rkmatrix = true
                         U, V = bbfmm(Kernel, s.X, t.X, Hparams.MaxRank)
-                        # A = kernel_full(Kernel, s.X, t.X)
-                        # @show norm(A-U*V'), size(U), size(V), size(A), s.s, s.e, t.s, t.e
                     else
                         H.is_hmat = true
                     end

@@ -1,11 +1,5 @@
 __precompile__(false)
-module Hmat
-    using BinDeps
-    import BinDeps:library_dependency
-    @BinDeps.setup()
-    libaca = library_dependency("deps/src/build/libaca")
-    libbbfmm = library_dependency("deps/src/build/libbbfmm")
-
+module Hmatrix
     using Parameters
     using LinearAlgebra
     using PyPlot

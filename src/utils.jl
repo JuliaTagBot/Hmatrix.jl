@@ -1,3 +1,33 @@
+export
+Hparams,
+matshow,
+plot
+
+@with_kw mutable struct Params
+    Geom::Union{Nothing, Array} = nothing
+    εComp::Float64 = 1e-10
+    MaxRank::Int64 = 16
+    MaxBlock::Int64 = -1
+    MinBlock::Int64 = 64
+    Kernel::Union{Function, Nothing} = nothing
+    α::Union{Function, Nothing} = nothing
+    β::Union{Function, Nothing} = nothing
+    CompMethod::String = "svd"
+    εTrunc::Float64 = 1e-10
+    verbose::Bool = false
+    adm::Union{String,Nothing} = "strong"
+end
+
+Hparams = Params()
+
+function require_args(args...)
+    for i = 1:length(args)
+        if args[i]==nothing
+            error("Argument $i is nothing")
+        end
+    end
+end
+
 function Base.:size(H::Hmat)
     return (H.m, H.n)
 end
@@ -11,57 +41,6 @@ function Base.:size(H::Hmat, i::Int64)
         @error "size(Hmat, Int64): invalid dimension $i"
     end
 end
-
-# utilities
-function consistency(H)
-    if H.is_rkmatrix + H.is_fullmatrix + H.is_hmat != 1
-        @error "Matrix is ambiguous or unset"
-    end
-
-    if H.m == 0 || H.n == 0 
-        @error "Empty matrix"
-    end
-
-    if H.s.N!=H.m || H.t.N !=H.n
-        @error "Matrix dimensions are not consistent with cluster"
-    end
-
-    if H.is_rkmatrix
-        if length(H.C)>0
-            @error "Rank matrix should not have nonempty C"
-        end
-        if size(H.A, 1)!= H.m || size(H.B, 1)!=H.n || size(H.A,2)!=size(H.B,2)
-            @error "Rank matrix dimension not match"
-        end
-        if length(H.A)==0 || length(H.B)==0
-            @error "Empty rank matrices"
-        end
-    end
-    
-    if H.is_fullmatrix
-        if length(H.A)>0 || length(H.B)>0
-            @error "Full matrix should not have nonempty A, B"
-        end
-        if size(H.C,1)!=H.m || size(H.C,2)!=H.n
-            @error "Full matrix dimension not match"
-        end
-    end
-
-    if H.is_hmat
-        if length(H.A)>0 || length(H.B)>0 || length(H.C)>0
-            @error "Hmatrix should not have nonempty A, B, C"
-        end
-        if length(H.children)!=4
-            @error "Hmatrix no children"
-        end
-        for i = 1:2
-            for j =1:2
-                consistency(H.children[i,j])
-            end
-        end
-    end
-end
-
 
 function info(H::Hmat)
     dmat::Int64 = 0
@@ -117,7 +96,7 @@ function hmat_copy!(H::Hmat, A::Hmat)
     H.t = A.t
     H.P = copy(A.P)
     if A.is_fullmatrix
-        @timeit tos "copyC" H.C = copy(A.C) # bottleneck
+        H.C = copy(A.C) # bottleneck
         H.is_fullmatrix = true
     elseif A.is_rkmatrix
         H.A = copy(A.A)
@@ -172,108 +151,7 @@ function to_fmat(A::Hmat)
     to_fmat!(B)
     return B.C
 end
-
-
-
-
-############################# visualization utilites #############################
-function add_patch(a,b,c,d, n; edgecolor, color)
-    return patch.Rectangle([c,a], d-c, b-a, edgecolor=edgecolor, color=color, alpha=0.6)
-end
-
-function PyPlot.:matshow(H::Hmat)
-    cfig = figure()
-    ax = cfig[:add_subplot](1,1,1)
-    ax[:set_aspect]("equal")
-    function helper(H)
-        if H.is_fullmatrix
-            c = add_patch( H.s.s, H.s.e, H.t.s, H.t.e, H.m, edgecolor="k", color="y")
-            ax[:add_artist](c)
-        elseif H.is_rkmatrix
-            c = add_patch( H.s.s, H.s.e, H.t.s, H.t.e, H.m, edgecolor="k", color="g")
-            ax[:add_artist](c)
-        else
-            for i = 1:2
-                for j = 1:2
-                    helper(H.children[i,j])
-                end
-            end
-        end
-    end
-    helper(H)
-    xlim([1,H.m])
-    ylim([1,H.n])
-    gca()[:invert_yaxis]()
-    show()
-end
-
-function Base.:print(c::Cluster;verbose=false)
-    current_level = [c]
-    while length(current_level)>0
-        if verbose
-            println(join(["$(x.N)($(x.s),$(x.e))" for x in current_level], " "))
-        else
-            println(join(["$(x.N)" for x in current_level], " "))
-        end
-        next_level = []
-        for n in current_level
-            if !n.isleaf 
-                push!(next_level, n.left)
-                push!(next_level, n.right)
-            end
-            current_level = next_level
-        end
-    end
-end
-
-function Base.:print(h::Hmat)
-    G = to_fmat(h)
-    printmat(G)
-end
-
-function PyPlot.:plot(c::Cluster; showit=false)
-    
-    function helper(level)
-        clevel = 0
-        current_level = [c]
-        while clevel!=level && length(current_level)>0
-            next_level = []
-            for n in current_level
-                if !n.isleaf 
-                    push!(next_level, n.left)
-                    push!(next_level, n.right)
-                end
-                current_level = next_level
-            end
-            clevel += 1
-        end
-        if length(current_level)==0
-            return false
-        end
-        figure()
-        for c in current_level
-            if size(c.X,2)==1
-                scatter(c.X[:,1], ones(size(c.X,1)), marker = ".")
-            elseif size(c.X, 2)==2
-                scatter(c.X[:,1], c.X[:,2], marker = ".")
-            elseif size(c.X,2)==3
-                scatter3D(c.X[:,1], c.X[:,2], c.X[:,3], marker = ".")
-            end
-        end
-        title("Level = $level")
-        if !showit
-            savefig("level$level.png")
-            close("all")
-        end
-        return true
-    end
-    flag = true
-    l = 0
-    while flag
-        flag = helper(l)
-        l += 1
-    end
-end
+Base.:Array(A::Hmat) = to_fmat(A)
 
 function add_patch(a,b,c,d, n; edgecolor, color)
     return patch.Rectangle([c,a], d-c, b-a, edgecolor=edgecolor, color=color, alpha=0.6)

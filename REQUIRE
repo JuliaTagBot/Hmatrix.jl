@@ -11,3 +11,5 @@ FileIO
 Interpolations
 CMake
 BinDeps
+FastGaussQuadrature
+LowRankApprox

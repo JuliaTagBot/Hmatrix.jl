@@ -1,7 +1,7 @@
 export 
 Cluster,
-Hmat,
-bisect_cluster
+NewHmat,
+FullMat
 
 @with_kw mutable struct Cluster
     X::Array{Float64}  = Array{Float64}([])     # particle position
@@ -14,6 +14,8 @@ bisect_cluster
     isleaf::Bool = false                        # if it is leaf
     s::Int64 = 0                                # start index after permutation
     e::Int64 = 0                                # end index after permutation
+    center::Array{Float64} = Array{Float64}([])
+    diam::Union{Nothing,Float64} = nothing
 end
 
 @with_kw mutable struct Hmat
@@ -30,6 +32,107 @@ end
     s::Union{Cluster,Nothing} = nothing
     t::Union{Cluster,Nothing} = nothing # used in the construction phase and later abondoned
 end
+
+function NewHmat()
+    c = construct_cluster(Hparams.Geom, Hparams.MinBlock)
+    compute_geom_info(c)
+    if Hparams.Kernel!=nothing && Hparams.α==nothing 
+        return c, __c1(c)
+    else
+        error("Not implemented yet")
+    end
+end
+
+FullMat(F::Function, X::Array,Y::Array) = kernel_full(F, X, Y)
+
+
+function __c1(c)
+    MaxBlock, Kernel = Hparams.MaxBlock, Hparams.Kernel
+    h = Hmat()
+    function helper(H::Hmat, s::Cluster, t::Cluster)
+        H.m = s.N
+        H.n = t.N
+        H.s = s
+        H.t = t
+
+        # Matrix Size
+        if (H.m <= Hparams.MinBlock || H.n <= Hparams.MinBlock) || s.isleaf || t.isleaf
+            H.is_fullmatrix = true
+        elseif H.m > MaxBlock || H.n > MaxBlock
+            H.is_hmat = true
+        else
+            if s==t
+                if s.isleaf || t.isleaf
+                    H.is_fullmatrix = true
+                else
+                    H.is_hmat = true
+                end
+            else
+                if Hparams.CompMethod == "bbfmm"
+                    # dicide if the block is admissible
+                    if max(s.diam, t.diam)<=norm(s.center-t.center)-(s.diam+t.diam)/2
+                        H.is_rkmatrix = true
+                        U, V = bbfmm(Kernel, s.X, t.X, Hparams.MaxRank)
+                        # A = kernel_full(Kernel, s.X, t.X)
+                        # @show norm(A-U*V'), size(U), size(V), size(A), s.s, s.e, t.s, t.e
+                    else
+                        H.is_hmat = true
+                    end
+                else
+                    A = kernel_full(Kernel, s.X, t.X)
+                    U, V = compress(A)
+                    k = size(U,2)
+                    if k<=Hparams.MaxRank
+                        H.is_rkmatrix = true
+                    else
+                        H.is_hmat = true
+                    end
+                    if Hparams.verbose
+                        println("$(size(A)), $k($(Hparams.MaxRank)), $(H.is_rkmatrix) ")
+                    end
+                end
+            end
+            
+        end
+
+        if H.is_fullmatrix
+            H.C = kernel_full(Kernel, s.X, t.X)
+        elseif H.is_rkmatrix
+            H.A = U
+            H.B = V
+        else
+            H.children = Array{Hmat}([Hmat() Hmat()
+                                    Hmat() Hmat()])
+            helper(H.children[1,1], s.left, t.left)
+            helper(H.children[1,2], s.left, t.right)
+            helper(H.children[2,1], s.right, t.left)
+            helper(H.children[2,2], s.right, t.right)
+        end
+
+    end
+    helper(h, c, c)
+    return h
+end
+
+function Base.:(==)(c1::Cluster, c2::Cluster)
+    return c1.s==c2.s && c1.e==c2.e
+end
+
+function compute_geom_info(c::Cluster)
+    function helper(c)
+        c.center = sum(c.X, dims=1)/size(c.X,1)
+        diam = c.X - repeat(reshape(c.center, 1, size(c.X,2)),size(c.X,1),1)
+        c.diam = sqrt(maximum(sum(diam.^2, dims=2)))
+        if c.left!=nothing
+            helper(c.left)
+        end
+        if c.right!=nothing
+            helper(c.right)
+        end
+    end
+    helper(c)
+end
+#====== Legacy codes ======#
 
 function bisect_cluster(X::Array{Float64})
     clf = cluster.KMeans(n_clusters=2, random_state=0)
@@ -107,15 +210,14 @@ function kernel_full(f::Function, X::Array{Float64}, Y::Array{Float64})
     return A
 end
 
-function kernel_svd(f::Function, X::Array{Float64}, Y::Array{Float64}, eps::Float64)
+function kernel_svd(f::Function, X::Array{Float64}, Y::Array{Float64})
     A = kernel_full(f, X, Y)
     U,S,V = svd(A)
-    k = rank_truncate(S, eps)
+    k = rank_truncate(S)
     return k, U, S, V
 end
 
-function construct_hmat(f::Function, c::Cluster, Nleaf::Int64, Rrank::Int64,
-    eps::Float64, MaxBlock::Int64, method="svd")
+function construct_hmat(f::Function, c::Cluster, Nleaf::Int64, Rrank::Int64, MaxBlock::Int64)
     if MaxBlock==-1
         MaxBlock = div(size(c.X,1), 4)
     end
@@ -133,7 +235,7 @@ function construct_hmat(f::Function, c::Cluster, Nleaf::Int64, Rrank::Int64,
             H.is_hmat = true
         else
             A = kernel_full(f, s.X, t.X)
-            U, V = compress(A, eps, method; Rrank=Rrank)
+            U, V = compress(A)
             k = size(U,2)
             if k<=Rrank
                 H.is_rkmatrix = true

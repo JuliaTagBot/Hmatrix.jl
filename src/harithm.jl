@@ -1,11 +1,7 @@
-# harithm.jl
-# This file contains the arithmetic functions for H-matrix
-
-
 # a = a + scalar * b
 # a is a H-matrix, b is a full matrix. The operation is done in place.
 # the format of a is preserved. 
-function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar::Float64, eps::Float64=1e-10)
+function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar::Float64)
     # println(a)
     # p = to_fmat(a) + scalar*b
     if a.is_fullmatrix
@@ -16,17 +12,17 @@ function hmat_full_add!(a::Hmat, b::AbstractArray{Float64}, scalar::Float64, eps
         C = a.A*a.B'+scalar*b
         # C = copy(b)
         # BLAS.gemm('N','T', 1.0, a.A, a.B, scalar, C);
-        a.A, a.B = compress(C, 1e-10) # cautious: rank might increase
+        a.A, a.B = compress(C) # cautious: rank might increase
         # println(maximum(p-to_fmat(a)))
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_hmat
         m = a.children[1,1].m
         n = a.children[1,1].n
         @views begin
-            hmat_full_add!(a.children[1,1], b[1:m,1:n],scalar, eps)
-            hmat_full_add!(a.children[1,2], b[1:m,n+1:end],scalar, eps)
-            hmat_full_add!(a.children[2,1], b[m+1:end,1:n],scalar, eps)
-            hmat_full_add!(a.children[2,2], b[m+1:end,n+1:end],scalar, eps)
+            hmat_full_add!(a.children[1,1], b[1:m,1:n],scalar)
+            hmat_full_add!(a.children[1,2], b[1:m,n+1:end],scalar)
+            hmat_full_add!(a.children[2,1], b[m+1:end,1:n],scalar)
+            hmat_full_add!(a.children[2,2], b[m+1:end,n+1:end],scalar)
         end
         # @assert maximum(p-to_fmat(a))<1e-6
     else
@@ -50,28 +46,28 @@ function full_hmat_add(A::Array{Float64}, H::Hmat)
     ]
 end
 
-function compress_low_rank(A::Array{Float64}, B::Array{Float64}, eps::Float64)
+function compress_low_rank(A::Array{Float64}, B::Array{Float64})
     FA = qr(A)
     FB = qr(B)
     W = FA.R*FB.R'
-    A1, A2 = compress(W, eps, "svd")
+    A1, A2 = compress(W)
     # @show size(QA), size(A1), size(QB), size(A2)
     return Array(FA.Q)*A1, Array(FB.Q)*A2
 end
 
-function rkmat_hmat_add(A::Array{Float64}, B::Array{Float64}, scalar::Float64, H::Hmat, eps::Float64)
+function rkmat_hmat_add(A::Array{Float64}, B::Array{Float64}, scalar::Float64, H::Hmat)
     # @show size(A,1), size(A,2),size(B,1), size(B,2),H.m, H.n
     # @assert size(A,2)==size(B,2) && size(A,1)==H.m && size(B,1)==H.n
     # C = A*B'+scalar*to_fmat(H)
     if H.is_fullmatrix
         C = A*B' + scalar*H.C
-        A, B = compress(C, eps)
+        A, B = compress(C)
         # @show "H.is_fullmatrix = ", pointwise_error(A*B', C)
         return A, B
     end
 
     if H.is_rkmatrix
-        A, B = _rkmat_add!(A, B, scalar*H.A, H.B, eps)
+        A, B = _rkmat_add!(A, B, scalar*H.A, H.B)
         # @show "H.is_rkmatrix = ",pointwise_error(A*B', C)
         return A, B
     end
@@ -79,21 +75,15 @@ function rkmat_hmat_add(A::Array{Float64}, B::Array{Float64}, scalar::Float64, H
     if H.is_hmat
         m = H.children[1,1].m
         n = H.children[1,1].n
-        A11, B11 = rkmat_hmat_add(A[1:m,:], B[1:n,:],scalar, H.children[1,1], eps)
-        A12, B12 = rkmat_hmat_add(A[1:m,:], B[n+1:end,:],scalar, H.children[1,2], eps)
-        A21, B21 = rkmat_hmat_add(A[m+1:end,:], B[1:n,:],scalar, H.children[2,1], eps)
-        A22, B22 = rkmat_hmat_add(A[m+1:end,:], B[n+1:end,:],scalar, H.children[2,2], eps)
+        A11, B11 = rkmat_hmat_add(A[1:m,:], B[1:n,:],scalar, H.children[1,1])
+        A12, B12 = rkmat_hmat_add(A[1:m,:], B[n+1:end,:],scalar, H.children[1,2])
+        A21, B21 = rkmat_hmat_add(A[m+1:end,:], B[1:n,:],scalar, H.children[2,1])
+        A22, B22 = rkmat_hmat_add(A[m+1:end,:], B[n+1:end,:],scalar, H.children[2,2])
         A0 = [A11 A12 zeros(size(A11,1), size(A21,2)) zeros(size(A11,1), size(A22,2))
               zeros(size(A21,1), size(A11,2)) zeros(size(A21,1), size(A12,2)) A21 A22]
         B0 = [B11   zeros(size(B11,1), size(B12,2)) B21     zeros(size(B11,1), size(B22,2))
             zeros(size(B12,1), size(B11,2)) B12     zeros(size(B12,1), size(B21,2))  B22]
-        # @show size(A11), size(B11)
-        # @show size(A12), size(B12)
-        # @show size(A21), size(B21)
-        # @show size(A22), size(B22)
-        # println(size(A0), size(B0))
-        A, B = compress_low_rank(A0, B0, eps)
-        # @show "H.is_hmat = ", pointwise_error(A*B', C)
+        A, B = compress_low_rank(A0, B0)
         return A, B
     end
 
@@ -102,11 +92,11 @@ end
 
 # Perform a = a + scalar * b
 # the format of a is preserved
-function hmat_add!( a::Hmat, b::Hmat, scalar::Float64 = 1.0, eps::Float64=1e-10)
+function hmat_add!( a::Hmat, b::Hmat, scalar::Float64 = 1.0)
     # p = to_fmat(a) + scalar*to_fmat(b)
     if b.is_fullmatrix
         # println(a)
-        hmat_full_add!(a, b.C, scalar, eps)
+        hmat_full_add!(a, b.C, scalar)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_fullmatrix && b.is_rkmatrix
         if prod(size(b.A))==0 
@@ -124,7 +114,7 @@ function hmat_add!( a::Hmat, b::Hmat, scalar::Float64 = 1.0, eps::Float64=1e-10)
     # end
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_rkmatrix && b.is_rkmatrix
-        rkmat_add!(a, b, scalar, eps)
+        rkmat_add!(a, b, scalar)
         # println(maximum(p-to_fmat(a)))
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_rkmatrix && b.is_hmat
@@ -132,7 +122,7 @@ function hmat_add!( a::Hmat, b::Hmat, scalar::Float64 = 1.0, eps::Float64=1e-10)
         # # d = a.A*a.B' + scalar*C
         # BLAS.gemm!('N','T',1.0,a.A, a.B, scalar, C)
         # a.A, a.B = compress(C, eps)
-        a.A, a.B = rkmat_hmat_add(a.A, a.B, scalar, b, eps)
+        a.A, a.B = rkmat_hmat_add(a.A, a.B, scalar, b)
         # println(maximum(p-to_fmat(a)))
         # @assert maximum(p-to_fmat(a))<1e-6
         # error("Not implemented yet")
@@ -145,42 +135,33 @@ function hmat_add!( a::Hmat, b::Hmat, scalar::Float64 = 1.0, eps::Float64=1e-10)
         C12 = rkmat(b.A[1:m,:], b.B[n+1:end,:], a.s.left, b.t.right)
         C22 = rkmat(b.A[m+1:end,:], b.B[n+1:end,:], a.s.right, b.t.right)
         # end
-        hmat_add!(a.children[1,1], C11, scalar, eps)
-        hmat_add!(a.children[2,1], C21, scalar, eps)
-        hmat_add!(a.children[1,2], C12, scalar, eps)
-        hmat_add!(a.children[2,2], C22, scalar, eps)
+        hmat_add!(a.children[1,1], C11, scalar)
+        hmat_add!(a.children[2,1], C21, scalar)
+        hmat_add!(a.children[1,2], C12, scalar)
+        hmat_add!(a.children[2,2], C22, scalar)
         # @assert maximum(p-to_fmat(a))<1e-6
     elseif a.is_hmat && b.is_hmat
         for i = 1:2
             for j = 1:2
-                hmat_add!(a.children[i,j], b.children[i,j], scalar, eps)
+                hmat_add!(a.children[i,j], b.children[i,j], scalar)
             end
         end
         # @assert maximum(p-to_fmat(a))<1e-6
     end
 end
 
-#=
-function Base.:+(a::Hmat, b::Hmat)
-    # @assert size(a,1) == size(b,1) && size(a,2)==size(b,2)
+function hadd(a::Hmat, b::Hmat)
     c = copy(a)
-    hmat_add!( c, b )
-    # @assert maximum(abs.(to_fmat(a)+to_fmat(b)-to_fmat(c)))<1e-6
+    hmat_add!( c, b, 1.0 )
     return c
 end
-=#
+Base.:+(a::Hmat, b::Hmat) = hadd(a, b)
+Base.:-(a::Hmat, b::Hmat) = a + (-b)
 
-function hadd(a::Hmat, b::Hmat, eps::Float64)
-    # @assert size(a,1) == size(b,1) && size(a,2)==size(b,2)
-    c = copy(a)
-    hmat_add!( c, b, 1.0, eps )
-    # @assert maximum(abs.(to_fmat(a)+to_fmat(b)-to_fmat(c)))<1e-6
-    return c
-end
 
 # a -- dense matrix
 # b -- hmatrix
-function full_mat_mul(a::Hmat, b::Hmat, eps::Float64)
+function full_mat_mul(a::Hmat, b::Hmat)
     H = Hmat()
     
     if b.is_hmat && (!a.s.isleaf) && (!(a.t.isleaf))
@@ -201,10 +182,10 @@ function full_mat_mul(a::Hmat, b::Hmat, eps::Float64)
         b21 = b.children[2,1]
         b22 = b.children[2,2]
 
-        H.children[1,1] = full_mat_mul(a11, b11, eps) + full_mat_mul(a12, b21, eps)
-        H.children[1,2] = full_mat_mul(a11, b12, eps) + full_mat_mul(a12, b22, eps)
-        H.children[2,1] = full_mat_mul(a21, b11, eps) + full_mat_mul(a22, b21, eps)
-        H.children[2,2] = full_mat_mul(a21, b12, eps) + full_mat_mul(a22, b22, eps)
+        H.children[1,1] = full_mat_mul(a11, b11) + full_mat_mul(a12, b21)
+        H.children[1,2] = full_mat_mul(a11, b12) + full_mat_mul(a12, b22)
+        H.children[2,1] = full_mat_mul(a21, b11) + full_mat_mul(a22, b21)
+        H.children[2,2] = full_mat_mul(a21, b12) + full_mat_mul(a22, b22)
     elseif b.is_hmat
         # error("Never used")
         H.is_fullmatrix = true
@@ -220,7 +201,7 @@ function full_mat_mul(a::Hmat, b::Hmat, eps::Float64)
     return H
 end
 
-function mat_full_mul(a::Hmat, b::Hmat, eps::Float64)
+function mat_full_mul(a::Hmat, b::Hmat)
     B = b.C
     H = Hmat()
     
@@ -241,10 +222,10 @@ function mat_full_mul(a::Hmat, b::Hmat, eps::Float64)
         a21 = a.children[2,1]
         a22 = a.children[2,2]
 
-        H.children[1,1] = mat_full_mul(a11, b11, eps) + mat_full_mul(a12, b21, eps) 
-        H.children[1,2] = mat_full_mul(a11, b12, eps) + mat_full_mul(a12, b22, eps)
-        H.children[2,1] = mat_full_mul(a21, b11, eps) + mat_full_mul(a22, b21, eps)
-        H.children[2,2] = mat_full_mul(a21, b12, eps) + mat_full_mul(a22, b22, eps)
+        H.children[1,1] = mat_full_mul(a11, b11) + mat_full_mul(a12, b21) 
+        H.children[1,2] = mat_full_mul(a11, b12) + mat_full_mul(a12, b22)
+        H.children[2,1] = mat_full_mul(a21, b11) + mat_full_mul(a22, b21)
+        H.children[2,2] = mat_full_mul(a21, b12) + mat_full_mul(a22, b22)
     elseif a.is_hmat
         H.is_fullmatrix = true
         H.C = a * B
@@ -278,14 +259,13 @@ function transpose_hmat_mat_mul(H::Hmat, V::AbstractArray{Float64})
     error("Invalid H")
 end
 
-function hmul(a::Hmat, b::Hmat, eps::Float64)
-    @timeit tos "hmul" begin
+function hmul(a::Hmat, b::Hmat)
     # R = to_fmat(a)*to_fmat(b)
     if a.is_fullmatrix
-        @timeit tos "full_mat_mul" H = full_mat_mul(a, b, eps)
+        H = full_mat_mul(a, b)
         # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
     elseif b.is_fullmatrix
-        @timeit tos "mat_full_mul" H = mat_full_mul(a, b, eps)
+        H = mat_full_mul(a, b)
         # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
     elseif a.is_rkmatrix && b.is_rkmatrix
         H = Hmat(is_rkmatrix = true, A = a.A, B = b.B * (b.A' * a.B))
@@ -314,9 +294,9 @@ function hmul(a::Hmat, b::Hmat, eps::Float64)
             for j = 1:2
                 # hmat_add!(H.children[i,j], hmul(a.children[i,1],b.children[1,j],eps), 1.0 ,eps)
                 # hmat_add!(H.children[i,j], hmul(a.children[i,2],b.children[2,j],eps), 1.0 ,eps)
-                H1 = hmul(a.children[i,1],b.children[1,j],eps)
-                H2 = hmul(a.children[i,2],b.children[2,j],eps)
-                H.children[i,j] = hadd( H1, H2, eps)
+                H1 = hmul(a.children[i,1],b.children[1,j])
+                H2 = hmul(a.children[i,2],b.children[2,j])
+                H.children[i,j] = hadd( H1, H2)
                 # H.children[i,j] = hmul(a.children[i,1],b.children[1,j],eps) + hmul(a.children[i,2],b.children[2,j],eps)
             end
         end
@@ -330,9 +310,9 @@ function hmul(a::Hmat, b::Hmat, eps::Float64)
     H.n = b.n
     # println(maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H))))
     # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
-end
     return H
 end
+Base.:*(a::Hmat, b::Hmat) = a*b
 
 function Base.:*(a::Hmat, v::AbstractArray{Float64})
     r = zeros(a.m, size(v,2))
@@ -386,7 +366,7 @@ end
 
 
 function _rkmat_add!(A1::Array{Float64}, B1::Array{Float64}, 
-                A2::Array{Float64}, B2::Array{Float64}, eps::Float64)
+                A2::Array{Float64}, B2::Array{Float64})
     if size(A2,2)==0 
         @assert size(B2,2)==0
         return A1, B1
@@ -401,7 +381,7 @@ function _rkmat_add!(A1::Array{Float64}, B1::Array{Float64},
     FBQ, FBR = qr([B1 B2])
 
     W = FAR*FBR'
-    U,V = compress(W, eps, "svd")
+    U,V = compress(W)
     r = size(U,1)
     A = FAQ * U
     V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
@@ -409,8 +389,7 @@ function _rkmat_add!(A1::Array{Float64}, B1::Array{Float64},
     return A, B
 end
 
-function rkmat_add!(a::Hmat, b::Hmat, scalar::Float64, eps::Float64=1e-10)
-    @timeit tos "rkmat_add" begin
+function rkmat_add!(a::Hmat, b::Hmat, scalar::Float64)
     A1, B1, A2, B2 = a.A, a.B, scalar*b.A, b.B
     if size(A2,2)==0 
         @assert size(B2,2)==0
@@ -426,13 +405,12 @@ function rkmat_add!(a::Hmat, b::Hmat, scalar::Float64, eps::Float64=1e-10)
     FBQ, FBR = qr([B1 B2])
 
     W = FAR*FBR'
-    U,V = compress(W, eps, "svd")
+    U,V = compress(W)
     r = size(U,1)
     A = FAQ * U
     V = [V;zeros(size(FBQ,1)-size(V,1), size(V,2))]
     B =  FBQ* V # find ways to disable bounds check
     a.A, a.B= A, B
-    end
 end
 
 function haxpy!(s::Float64, H::Hmat, d::Union{Nothing, Float64, Array{Float64,1}})
@@ -469,51 +447,50 @@ function haxpy!(s::Float64, H::Hmat, d::Union{Nothing, Float64, Array{Float64,1}
     end
 end
 
-#=
-function Base.:*(a::Hmat, b::Hmat)
-    # R = to_fmat(a)*to_fmat(b)
-    if a.is_fullmatrix
-        H = full_mat_mul(a, b)
-        # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
-    elseif b.is_fullmatrix
-        H = mat_full_mul(a, b)
-        # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
-    elseif a.is_rkmatrix && b.is_rkmatrix
-        H = Hmat(is_rkmatrix = true, A = a.A, B = b.B * (b.A' * a.B))
-        # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
-    elseif a.is_rkmatrix && b.is_hmat
-        c = copy(b)
-        to_fmat!(c)
-        H = Hmat(is_rkmatrix = true, A = a.A, B = c.C'*a.B)
-        # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
-    elseif a.is_hmat && b.is_rkmatrix
-        c = copy(a)
-        to_fmat!(c)
-        H = Hmat(is_rkmatrix = true, A = c*b.A, B = b.B)
-        # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
-    elseif a.is_hmat && b.is_hmat 
-        H = Hmat(is_hmat = true)
-        m = a.children[1,1].m
-        n = b.children[1,1].n
-        m1 = a.m - m
-        n1 = b.n - n
-        H.children = Array{Hmat}([Hmat(m=m,n=n) Hmat(m=m,n=n1)
-                                 Hmat(m=m1,n=n) Hmat(m=m1,n=n1)])
-        for i = 1:2
-            for j = 1:2
-                H.children[i,j] = a.children[i,1]*b.children[1,j] + a.children[i,2]*b.children[2,j]
-            end
-        end
-        # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
-    else
-        error("Undefined")
+import LinearAlgebra: UniformScaling
+function Base.:+(u::UniformScaling, A::Hmat)
+    if length(A.P)>0
+        error("Hmatrix is frozen after factorization")
     end
-    H.s = a.s
-    H.t = b.t
-    H.m = a.m
-    H.n = b.n
-    # println(maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H))))
-    # @assert maximum(abs.(to_fmat(a)*to_fmat(b)-to_fmat(H)))<1e-6
+    H = Hmat()
+    hmat_copy!(H, A)
+    function helper(H::Hmat)
+        if length(H.children)==0
+            H.C += u
+        else
+            helper(H.children[1,1])
+            helper(H.children[2,2])
+        end
+    end
+    helper(H)
     return H
 end
-=#
+Base.:+(A::Hmat, u::UniformScaling) = u+A
+Base.:-(A::Hmat, u::UniformScaling) = u+(-A)
+Base.:-(u::UniformScaling, A::Hmat) = u+(-A)
+
+function Base.:*(u::Number, A::Hmat)
+    if length(A.P)>0
+        error("Hmatrix is frozen after factorization")
+    end
+    H = Hmat()
+    hmat_copy!(H, A)
+    function helper(H::Hmat)
+        if length(H.children)==0
+            H.C *= u
+        else
+            for i = 1:2
+                for j = 1:2
+                    helper(H.children[i,j])
+                end
+            end
+        end
+    end
+
+    return H
+end
+Base.:*(A::Hmat, u::UniformScaling) = u*A
+Base.:/(A::Hmat, u::UniformScaling) = 1/u*A
+
+Base.:-(A::Hmat)=(-1)*A
+

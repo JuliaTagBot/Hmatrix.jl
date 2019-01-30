@@ -1,27 +1,56 @@
-function aca(A::Array{Float64}, eps::Float64, Rrank::Int64)
+import LowRankApprox: psvd
+export 
+lu!,
+lu,
+getl,
+getu
+
+function aca(A::Array{Float64}, Rrank::Int64)
     U = zeros(size(A,1), Rrank+1)
     V = zeros(size(A,2), Rrank+1)
-    R = ccall((:aca_wrapper,libaca), Cint, (Ref{Cdouble}, Ref{Cdouble},
-                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), eps, Rrank)
+    R = ccall((:aca_wrapper,"deps/src/build/libaca"), Cint, (Ref{Cdouble}, Ref{Cdouble},
+                Ref{Cdouble},Cint, Cint,Cdouble, Cint ), A, U, V, size(A,1), size(A,2), Hparams.εComp, Rrank)
     R = min(R, Rrank+1)
     U = U[:,1:R]
     V = V[:,1:R]
     return U, V
 end
 
+function bbfmm(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
+    if length(size(X))==1
+        return bbfmm1d(f, X, Y, Rrank)
+    else
+        if Rrank^2>max(size(X,1), size(Y,1))
+            Rrank=Int64(floor(sqrt(max(size(X,1), size(Y,1)))))
+        end
+        return bbfmm2d(f, X, Y, Rrank)
+    end
+end
+
 function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
     U = zeros(size(X,1), Rrank)
     V = zeros(size(Y,1), Rrank)
     f_c = @cfunction($f, Cdouble, (Cdouble, Cdouble));
-    ccall((:bbfmm1D,libbbfmm), Cvoid,
+    ccall((:bbfmm1D,"deps/src/build/libbbfmm"), Cvoid,
             (Ptr{Cvoid}, Ref{Cdouble}, Ref{Cdouble}, Cdouble, Cdouble, Cdouble, Cdouble, Ref{Cdouble}, Ref{Cdouble}, Cint, Cint, Cint),
             f_c, X, Y, minimum(X), maximum(X) ,minimum(Y), maximum(Y) ,U,V, Rrank, length(X), length(Y))
     return U, V
 end
 
+function bbfmm2d(f::Function, X::Array{Float64,2},Y::Array{Float64,2}, Rrank::Int64)
+    U = zeros(size(X,1), Rrank^2)
+    V = zeros(size(Y,1), Rrank^2)
+    g = (x1,y1,x2,y2)->f([x1;y1],[x2;y2])
+    f_c = @cfunction($g, Cdouble, (Cdouble, Cdouble, Cdouble, Cdouble));
+    ccall((:bbfmm2D,"deps/src/build/libbbfmm"), Cvoid,
+            (Ptr{Cvoid}, Ref{Cdouble}, Ref{Cdouble}, Ref{Cdouble}, Ref{Cdouble}, Cint, Cint, Cint),
+            f_c, X[:], Y[:],U,V, Rrank, size(X,1), size(Y,1))
+    return U, V
+end
+
 # column pivoting RRQR
-function rrqr(A::Array{Float64},tol::Float64)
-    F = pqrfact(A, rtol = tol)
+function rrqr(A::Array{Float64})
+    F = pqrfact(A, rtol = Hparams.εComp)
     ip = inverse_permutation(F.p)
     Q = F.Q
     R = F.R[:,ip]'
@@ -29,11 +58,11 @@ function rrqr(A::Array{Float64},tol::Float64)
 end
 
 
-function rank_truncate(S::Array{Float64}, eps::Float64=1e-10)
+function rank_truncate(S::Array{Float64})
     if length(S)==0
         return 0
     end
-    k = findlast(S/S[1] .> eps)
+    k = findlast(S/S[1] .> Hparams.εTrunc)
     if isa(k, Nothing)
         return 0
     else
@@ -44,9 +73,8 @@ end
 # C is a full matrix
 # the function will try to compress C with given tolerance eps
 # Rrank is required when method = "aca"
-function compress(C::Array{Float64}, eps::Float64=1e-10, method::String="svd";
-                     Rrank::Int64 = -1)
-
+function compress(C::Array{Float64})
+    method = Hparams.CompMethod
     # method = "rrqr"
     # if the matrix is a zero matrix, return zero vectors
     if sum(abs.(C))<1e-5
@@ -61,29 +89,25 @@ function compress(C::Array{Float64}, eps::Float64=1e-10, method::String="svd";
         else
             U,S,V = svd(C)
         end
-        k = findlast(S/S[1] .> eps)
+        k = findlast(S/S[1] .> Hparams.εTrunc)
         @assert !isa(k, Nothing) # k should never be zero
         A = U[:,1:k]
         B = (diagm(0=>S[1:k])*V'[1:k,:])'
         return A, B
-    end
-
-    if method=="aca"             # more accurate
-        U,V = aca(C, eps, Rrank);
+    elseif method=="aca"             # more accurate
+        U,V = aca(C, Hparams.εComp, Hparams.MaxRank);
         return U,V
-    end
-
-    if method=="rrqr"
-        U,V = rrqr(C, eps)
+    elseif method=="rrqr"
+        U,V = rrqr(C)
         return U,V
+    else
+        error("Method $method not implemented yet")
     end
-
-    error("Method $method not implemented yet")
 
 end
 
 
-function getl(A, unitdiag)
+function getl(A, unitdiag=true)
     if unitdiag
         return LowerTriangular(A)+LowerTriangular(-diagm(0=>diag(A)) + UniformScaling(1.0))
     else
@@ -91,7 +115,7 @@ function getl(A, unitdiag)
     end
 end
 
-function getu(A, unitdiag)
+function getu(A, unitdiag=false)
     if unitdiag
         return UpperTriangular(A)+UpperTriangular(-diagm(0=>diag(A)) + UniformScaling(1.0))
     else
@@ -120,13 +144,13 @@ end
 ########################### LU related functions ###########################
 
 # # special function for computing c = c - a*b
-function hmat_sub_mul!(c::Hmat, a::Hmat, b::Hmat, eps::Float64)
-    M = hmul(a, b, eps)
-    hmat_add!(c, M , -1.0, eps)
+function hmat_sub_mul!(c::Hmat, a::Hmat, b::Hmat)
+    M = hmul(a, b)
+    hmat_add!(c, M , -1.0)
 end
 
 # solve a x = b where a is possibly a H-matrix. a is lower triangular. 
-function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag::Bool, eps::Float64, ul::Char='L')
+function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag::Bool, ul::Char='L')
     if a.is_rkmatrix
         error("A should not be a low-rank matrix")
     end
@@ -149,10 +173,10 @@ function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag::Bool, eps:
             n = a11.m
             b1 = b[1:n,:]
             b2 = b[n+1:end, :]
-            mat_full_solve(a11, b1, unitdiag, eps, ul)
+            mat_full_solve(a11, b1, unitdiag, ul)
             b2 -= a21 * b1
-            # hmat_sub_mul!(b2, a21, b1, eps)
-            mat_full_solve(a22, b2, unitdiag, eps, ul)
+            # hmat_sub_mul!(b2, a21, b1)
+            mat_full_solve(a22, b2, unitdiag, ul)
             # b[:] = [b1;b2]
             b[1:n,:] = b1
             b[n+1:end,:] = b2
@@ -175,10 +199,10 @@ function mat_full_solve(a::Hmat, b::AbstractArray{Float64}, unitdiag::Bool, eps:
             # @show size(a11), size(b), size(a)
             b1 = b[:,1:n]
             b2 = b[:,n+1:end]
-            mat_full_solve(a11, b1, unitdiag, eps, ul)
+            mat_full_solve(a11, b1, unitdiag, ul)
             # b1 = b1/getu(to_fmat(a11), unitdiag)
             b2 -= b1 * a12
-            mat_full_solve(a22, b2, unitdiag, eps, ul)
+            mat_full_solve(a22, b2, unitdiag, ul)
             # b2 = b2/getu(to_fmat(a22), unitdiag)
             b[:,1:n] = b1
             b[:,n+1:end] = b2
@@ -189,7 +213,7 @@ end
 
 # Solve AX = B and store the result into B
 # A, B have been prepermuted and therefore this function should not worry about permutation
-function hmat_trisolve!(a::Hmat, b::Hmat, islower::Bool, unitdiag::Bool, eps::Float64)
+function hmat_trisolve!(a::Hmat, b::Hmat, islower::Bool, unitdiag::Bool)
     # the coefficient matrix cannot be a low rank matrix,
     if a.is_rkmatrix
         error("A should not be a low-rank matrix")
@@ -220,39 +244,39 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower::Bool, unitdiag::Bool, eps::Fl
             b11, b12, b21, b22 = b.children[1,1], b.children[1,2],b.children[2,1],b.children[2,2]
             
             # p = getl(to_fmat(a11), unitdiag)\to_fmat(b11)
-            hmat_trisolve!(a11, b11, islower, unitdiag, eps)
+            hmat_trisolve!(a11, b11, islower, unitdiag)
             # println("*** I Error = ", pointwise_error(p, to_fmat(b11)))
 
             # p = getl(to_fmat(a11), unitdiag)\to_fmat(b12)
-            hmat_trisolve!(a11, b12, islower, unitdiag, eps)
+            hmat_trisolve!(a11, b12, islower, unitdiag)
             # println("*** II Error = ", pointwise_error(p, to_fmat(b12)))
 
             # p = to_fmat(b21)-to_fmat(a21)*to_fmat(b11)
-            hmat_sub_mul!(b21, a21, b11, eps)
+            hmat_sub_mul!(b21, a21, b11)
             # println("*** III Error = ", pointwise_error(p, to_fmat(b21)))
 
             # p = to_fmat(b22)-to_fmat(a21)*to_fmat(b12)
-            hmat_sub_mul!(b22, a21, b12, eps)
+            hmat_sub_mul!(b22, a21, b12)
             # println("*** IV Error = ", pointwise_error(p, to_fmat(b22)))
 
             # p = getl(to_fmat(a22), unitdiag)\to_fmat(b21)
-            hmat_trisolve!(a22, b21, islower, unitdiag, eps)
+            hmat_trisolve!(a22, b21, islower, unitdiag)
             # println("*** V Error = ", pointwise_error(p, to_fmat(b21)))
 
             # p = getl(to_fmat(a22), unitdiag)\to_fmat(b22)
-            hmat_trisolve!(a22, b22, islower, unitdiag, eps)
+            hmat_trisolve!(a22, b22, islower, unitdiag)
             # println("*** VI Error = ", pointwise_error(p, to_fmat(b22)))
 
             # println("*** H Error = ", pointwise_error(p, to_fmat(b)))
         elseif a.is_hmat && b.is_fullmatrix
             # println("HF")
             # p = getl(to_fmat(a), unitdiag)\b.C
-            mat_full_solve(a, b.C, unitdiag, eps)
+            mat_full_solve(a, b.C, unitdiag)
             # println("*** HF Error = ", pointwise_error(p, to_fmat(b)))
         elseif a.is_hmat && b.is_rkmatrix
             # println("FH")
             # p = getl(to_fmat(a), unitdiag)\to_fmat(b)
-            mat_full_solve(a, b.A, unitdiag, eps)
+            mat_full_solve(a, b.A, unitdiag)
             # println("*** FH Error = ", pointwise_error(p, to_fmat(b)))
             # error("Not used")
         end
@@ -279,13 +303,13 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower::Bool, unitdiag::Bool, eps::Fl
             # println("HF")
             # p =b.C/ getu(to_fmat(a), unitdiag)
             # error("To be implemented")
-            mat_full_solve(a, b.C, unitdiag, eps, 'U')
+            mat_full_solve(a, b.C, unitdiag, 'U')
             # println("*** HF Error = ", pointwise_error(p, to_fmat(b)))
         elseif a.is_hmat && b.is_rkmatrix
             # println("FH")
             # p = to_fmat(b)/getu(to_fmat(a), unitdiag)
             # error("To be implemented")
-            mat_full_solve(a, b.B', unitdiag, eps, 'U')
+            mat_full_solve(a, b.B', unitdiag, 'U')
             # println("*** FH Error = ", pointwise_error(p, to_fmat(b)))
             # error("Not used")
 
@@ -296,27 +320,27 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower::Bool, unitdiag::Bool, eps::Fl
             b11, b12, b21, b22 = b.children[1,1], b.children[1,2],b.children[2,1],b.children[2,2]
             
             # p = to_fmat(b11)/getu(to_fmat(a11), unitdiag)
-            hmat_trisolve!(a11, b11, islower, unitdiag, eps)
+            hmat_trisolve!(a11, b11, islower, unitdiag)
             # println("*** I Error = ", pointwise_error(p, to_fmat(b11)))
 
             # p = getl(to_fmat(a11), unitdiag)\to_fmat(b12)
-            hmat_trisolve!(a11, b21, islower, unitdiag, eps)
+            hmat_trisolve!(a11, b21, islower, unitdiag)
             # println("*** II Error = ", pointwise_error(p, to_fmat(b12)))
 
             # p = to_fmat(b21)-to_fmat(a21)*to_fmat(b11)
-            hmat_sub_mul!(b12, b11, a12, eps)
+            hmat_sub_mul!(b12, b11, a12)
             # println("*** III Error = ", pointwise_error(p, to_fmat(b21)))
 
             # p = to_fmat(b22)-to_fmat(a21)*to_fmat(b12)
-            hmat_sub_mul!(b22, b21, a12, eps)
+            hmat_sub_mul!(b22, b21, a12)
             # println("*** IV Error = ", pointwise_error(p, to_fmat(b22)))
 
             # p = getl(to_fmat(a22), unitdiag)\to_fmat(b21)
-            hmat_trisolve!(a22, b12, islower, unitdiag, eps)
+            hmat_trisolve!(a22, b12, islower, unitdiag)
             # println("*** V Error = ", pointwise_error(p, to_fmat(b21)))
 
             # p = getl(to_fmat(a22), unitdiag)\to_fmat(b22)
-            hmat_trisolve!(a22, b22, islower, unitdiag, eps)
+            hmat_trisolve!(a22, b22, islower, unitdiag)
             # println("*** VI Error = ", pointwise_error(p, to_fmat(b22)))
 
             # println("*** H Error = ", pointwise_error(p, to_fmat(b)))
@@ -327,7 +351,7 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower::Bool, unitdiag::Bool, eps::Fl
 
         # @timeit tos "t" transpose!(a)
         # @timeit tos "t" transpose!(b)
-        # hmat_trisolve!(a, b, true, unitdiag, eps)
+        # hmat_trisolve!(a, b, true, unitdiag)
         # @timeit tos "t" transpose!(a)
         # @timeit tos "t" transpose!(b)
     end
@@ -337,7 +361,7 @@ end
 # total number of nodes instead of relative order of the points
 function permute_hmat!(H::Hmat, P::AbstractArray{Int64})
     if H.is_fullmatrix
-        @timeit tos "HCP" H.C = H.C[P,:] # bottleneck
+        H.C = H.C[P,:] # bottleneck
         # @inbounds for i = 1:size(H.C,2)
         #     @views permute!(H.C[:,i], P)
         # end
@@ -354,7 +378,7 @@ function permute_hmat!(H::Hmat, P::AbstractArray{Int64})
     end
 end
 
-function LinearAlgebra.:lu!(H::Hmat,eps::Float64=1e-10)
+function LinearAlgebra.:lu!(H::Hmat)
     if length(H.P)>0
         @warn "H-matrix H is already factorized; reuse factorization"
         return 
@@ -370,7 +394,7 @@ function LinearAlgebra.:lu!(H::Hmat,eps::Float64=1e-10)
         # G = to_fmat(H)
         # lu!(G, Val{false}())
 
-        lu!(H.children[1,1], eps)
+        lu!(H.children[1,1])
         
         # lu!(G[1:H.children[1,1].m, 1:H.children[1,1].n])
         # GG = to_fmat(H)
@@ -380,22 +404,22 @@ function LinearAlgebra.:lu!(H::Hmat,eps::Float64=1e-10)
         # print(H)
 
         # E = getl(to_fmat(H.children[1,1]), true)\to_fmat(H.children[1,2])
-        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true, eps)      # islower, unitdiag
+        hmat_trisolve!(H.children[1,1], H.children[1,2], true, true)      # islower, unitdiag
         # println("Err-L ", maximum(abs.(E-to_fmat(H.children[1,2]))))
         # @assert maximum(abs.(E-to_fmat(H.children[1,2])))<1e-6
 
 
         # E = to_fmat(H.children[2,1])/getu(to_fmat(H.children[1,1]), false)
-        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false, eps)   # islower, unitdiag
+        hmat_trisolve!(H.children[1,1], H.children[2,1], false, false)   # islower, unitdiag
         # println("Err-U ", maximum(abs.(E-to_fmat(H.children[2,1]))))
         # @assert maximum(abs.(E-to_fmat(H.children[2,1])))<1e-6
 
         # E = to_fmat(H.children[2,2]) - to_fmat(H.children[2,1])*to_fmat(H.children[1,2])
-        hmat_sub_mul!(H.children[2,2], H.children[2,1], H.children[1,2], eps)
+        hmat_sub_mul!(H.children[2,2], H.children[2,1], H.children[1,2])
         # println("Err-E ", maximum(abs.(E-to_fmat(H.children[2,2]))))
         # @assert maximum(abs.(E-to_fmat(H.children[2,2])))<1e-6
 
-        lu!(H.children[2,2], eps)
+        lu!(H.children[2,2])
         # print(H)
 
         permute_hmat!(H.children[2,1], H.children[2,2].P)
@@ -403,6 +427,13 @@ function LinearAlgebra.:lu!(H::Hmat,eps::Float64=1e-10)
         # GG = to_fmat(H)
         # println("***", size(G), maximum(abs.(G-GG)))
     end
+    return H
+end
+
+function LinearAlgebra.:lu(H::Hmat)
+    A = Hmat()
+    hmat_copy!(A, H)
+    return lu!(A)
 end
 
 # a is factorized hmatrix

@@ -159,7 +159,6 @@ end
 
 
 #====== Legacy codes ======#
-
 function bisect_cluster(X::Array{Float64})
     clf = cluster.KMeans(n_clusters=2, random_state=0)
     clf[:fit](X)

@@ -482,8 +482,10 @@ function Base.:*(u::Number, A::Hmat)
     H = Hmat()
     hmat_copy!(H, A)
     function helper(H::Hmat)
-        if length(H.children)==0
+        if H.is_fullmatrix 
             H.C *= u
+        elseif H.is_rkmatrix
+            H.A *= u
         else
             for i = 1:2
                 for j = 1:2
@@ -501,13 +503,13 @@ Base.:/(A::Hmat, u::UniformScaling) = 1/u*A
 Base.:-(A::Hmat)=(-1)*A
 
 function Base.:+(A::Hmat, B::AbstractArray{Float64,2})
-    C = copy(B)
+    C = copy(A)
     if size(B)!=size(A)
         error("Matrix Size A and B should be the Same")
     end
     function helper(H)
         if H.is_fullmatrix
-            H.C += A[H.s.s:H.s.e, H.t.s:H.t.e]
+            H.C += B[H.s.s:H.s.e, H.t.s:H.t.e]
         elseif H.is_hmat
             for i = 1:2
                 for j = 1:2

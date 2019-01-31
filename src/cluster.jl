@@ -193,7 +193,7 @@ function construct_cluster(X::Array{Float64}, Nleaf::Int64)
         P1 = c.P[P1]
         P2 = c.P[P2]
         c.left = Cluster(X = X1, P = P1, N = length(P1), s = c.s, e = c.s+length(P1)-1)
-        c.right = Cluster(X = X2, P = P2, N = length(P2), s = c.s+length(P1)-1, e = c.e)
+        c.right = Cluster(X = X2, P = P2, N = length(P2), s = c.s+length(P1), e = c.e)
         c.m = c.left.N
         c.n = c.right.N
         downward(c.left)

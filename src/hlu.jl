@@ -27,6 +27,62 @@ function bbfmm(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
     end
 end
 
+function aca2(f::Function, X::Array{Float64,1}, Y::Array{Float64,1}, Rrank::Int64)
+    m, n = length(X),length(Y)
+    τr = 1
+    A = zeros(m, Rrank+1)
+    B = zeros(n, Rrank+1)
+    Ib = ones(Bool, n)
+    for r = 0:Rrank
+        Mτr = [f(X[τr], y) for y in Y]
+        σr = argmax(abs.(Mτr))
+        Ib[σr] = false
+        δ = Mτr[σr] - B[σr,:]'*A[τr,:]
+        if δ == 0
+            return A[:,1:r], B[:,1:r]
+        else
+            Mσr = [f(x, Y[σr]) for x in X]
+            A[:,r+1] = (Mσr-(A[:,1:r]*B[σr,1:r])[:])/δ
+            B[:,r+1] = Mτr-(A[τr,1:r]'*B[:,1:r]')[:]
+        end
+        τr = argmax(abs.(B[Ib,r+1]))
+        τr = findall(Ib)[τr]
+        ε = norm(A[:,r+1])*norm(B[:,r+1])/norm(A[:,1])/norm(B[:,1])
+        if ε<=Hparams.εComp
+            return A[:,1:r+1], B[:,1:r+1]
+        end
+    end
+    return A, B
+end
+
+function aca2(f::Function, X::Array{Float64,2}, Y::Array{Float64,2}, Rrank::Int64)
+    m, n = size(X, 1),size(Y, 1)
+    τr = 1
+    A = zeros(m, Rrank+1)
+    B = zeros(n, Rrank+1)
+    Ib = ones(Bool, n)
+    for r = 0:Rrank
+        Mτr = [f(X[τr,:], Y[i,:]) for i=1:n]
+        σr = argmax(abs.(Mτr))
+        Ib[σr] = false
+        δ = Mτr[σr] - B[σr,:]'*A[τr,:]
+        if δ == 0
+            return A[:,1:r], B[:,1:r]
+        else
+            Mσr = [f(X[i,:], Y[σr,:]) for i=1:m]
+            A[:,r+1] = (Mσr-(A[:,1:r]*B[σr,1:r])[:])/δ
+            B[:,r+1] = Mτr-(A[τr,1:r]'*B[:,1:r]')[:]
+        end
+        τr = argmax(abs.(B[Ib,r+1]))
+        τr = findall(Ib)[τr]
+        ε = norm(A[:,r+1])*norm(B[:,r+1])/norm(A[:,1])/norm(B[:,1])
+        if ε<=Hparams.εComp
+            return A[:,1:r+1], B[:,1:r+1]
+        end
+    end
+    return A, B
+end
+
 function bbfmm1d(f::Function, X::Array{Float64},Y::Array{Float64}, Rrank::Int64)
     U = zeros(size(X,1), Rrank)
     V = zeros(size(Y,1), Rrank)

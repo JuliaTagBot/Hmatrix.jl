@@ -67,7 +67,7 @@ function __c1(c)
             else
                 if Hparams.ConsMethod == "bbfmm"
                     # dicide if the block is admissible
-                    if (s.diam+t.diam)/2<=norm(s.center-t.center)-(s.diam+t.diam)/2
+                    if (s.diam+t.diam)*0.55<=norm(s.center-t.center)
                         H.is_rkmatrix = true
                         U, V = bbfmm(Kernel, s.X, t.X, Hparams.MaxRank)
                     else
@@ -78,6 +78,16 @@ function __c1(c)
                     if (s.diam+t.diam)*0.55<=norm(s.center-t.center)
                         H.is_rkmatrix = true
                         U, V = _rk_matrix(Hparams.α, Hparams.β, s.X, t.X)
+                    else
+                        H.is_hmat = true
+                    end
+                elseif Hparams.ConsMethod == "aca2"
+                    if (s.diam+t.diam)*0.55<=norm(s.center-t.center)
+                        H.is_rkmatrix = true
+                        U, V = aca2(Hparams.Kernel, s.X, t.X, Hparams.MaxRank)
+                        if size(U,2)>Hparams.MaxRank
+                            H.is_hmat = true
+                        end
                     else
                         H.is_hmat = true
                     end

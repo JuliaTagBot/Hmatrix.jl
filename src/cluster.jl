@@ -1,5 +1,6 @@
 export 
 Cluster,
+Hmat,
 NewHmat,
 FullMat
 
@@ -66,14 +67,15 @@ function __c1(c)
             else
                 if Hparams.ConsMethod == "bbfmm"
                     # dicide if the block is admissible
-                    if max(s.diam, t.diam)<=norm(s.center-t.center)-(s.diam+t.diam)/2
+                    if (s.diam+t.diam)/2<=norm(s.center-t.center)-(s.diam+t.diam)/2
                         H.is_rkmatrix = true
                         U, V = bbfmm(Kernel, s.X, t.X, Hparams.MaxRank)
                     else
                         H.is_hmat = true
                     end
                 elseif Hparams.ConsMethod == "separate"
-                    if max(s.diam, t.diam)<=norm(s.center-t.center)-(s.diam+t.diam)/2
+                    # @show (s.diam+t.diam)/2, norm(s.center-t.center)
+                    if (s.diam+t.diam)/2<=norm(s.center-t.center)
                         H.is_rkmatrix = true
                         U, V = _rk_matrix(Hparams.α, Hparams.β, s.X, t.X)
                     else
@@ -123,7 +125,7 @@ function compute_geom_info(c::Cluster)
     function helper(c)
         c.center = sum(c.X, dims=1)/size(c.X,1)
         diam = c.X - repeat(reshape(c.center, 1, size(c.X,2)),size(c.X,1),1)
-        c.diam = sqrt(maximum(sum(diam.^2, dims=2)))
+        c.diam = 2sqrt(maximum(sum(diam.^2, dims=2)))
         if c.left!=nothing
             helper(c.left)
         end

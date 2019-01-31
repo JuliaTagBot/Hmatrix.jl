@@ -479,8 +479,7 @@ function Base.:*(u::Number, A::Hmat)
     if length(A.P)>0
         error("Hmatrix is frozen after factorization")
     end
-    H = Hmat()
-    hmat_copy!(H, A)
+    H = copy(A)
     function helper(H::Hmat)
         if H.is_fullmatrix 
             H.C *= u
@@ -494,7 +493,7 @@ function Base.:*(u::Number, A::Hmat)
             end
         end
     end
-
+    helper(H)
     return H
 end
 Base.:*(A::Hmat, u::Number) = u*A

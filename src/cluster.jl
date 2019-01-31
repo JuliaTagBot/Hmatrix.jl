@@ -75,7 +75,7 @@ function __c1(c)
                     end
                 elseif Hparams.ConsMethod == "separate"
                     # @show (s.diam+t.diam)/2, norm(s.center-t.center)
-                    if (s.diam+t.diam)/2<=norm(s.center-t.center)
+                    if (s.diam+t.diam)*0.55<=norm(s.center-t.center)
                         H.is_rkmatrix = true
                         U, V = _rk_matrix(Hparams.α, Hparams.β, s.X, t.X)
                     else

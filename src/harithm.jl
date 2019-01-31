@@ -497,8 +497,8 @@ function Base.:*(u::Number, A::Hmat)
 
     return H
 end
-Base.:*(A::Hmat, u::UniformScaling) = u*A
-Base.:/(A::Hmat, u::UniformScaling) = 1/u*A
+Base.:*(A::Hmat, u::Number) = u*A
+Base.:/(A::Hmat, u::Number) = 1/u*A
 
 Base.:-(A::Hmat)=(-1)*A
 

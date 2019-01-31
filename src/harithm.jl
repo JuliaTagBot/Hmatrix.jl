@@ -500,3 +500,24 @@ Base.:/(A::Hmat, u::UniformScaling) = 1/u*A
 
 Base.:-(A::Hmat)=(-1)*A
 
+function Base.:+(A::Hmat, B::AbstractArray{Float64,2})
+    C = copy(B)
+    if size(B)!=size(A)
+        error("Matrix Size A and B should be the Same")
+    end
+    function helper(H)
+        if H.is_fullmatrix
+            H.C += A[H.s.s:H.s.e, H.t.s:H.t.e]
+        elseif H.is_hmat
+            for i = 1:2
+                for j = 1:2
+                    helper(H.children[i,j])
+                end
+            end
+        end
+    end
+    helper(C)
+    return C
+end
+
+Base.:+(A::AbstractArray{Float64,2}, B::Hmat) = B+A

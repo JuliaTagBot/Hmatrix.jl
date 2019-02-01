@@ -1,3 +1,4 @@
+using SparseArrays
 # a = a + scalar * b
 # a is a H-matrix, b is a full matrix. The operation is done in place.
 # the format of a is preserved. 
@@ -501,7 +502,7 @@ Base.:/(A::Hmat, u::Number) = 1/u*A
 
 Base.:-(A::Hmat)=(-1)*A
 
-function Base.:+(A::Hmat, B::AbstractArray{Float64,2})
+function Base.:+(A::Hmat, B::Union{SparseMatrixCSC{Float64,Int64}, AbstractArray{Float64,2}})
     C = copy(A)
     if size(B)!=size(A)
         error("Matrix Size A and B should be the Same")
@@ -521,4 +522,4 @@ function Base.:+(A::Hmat, B::AbstractArray{Float64,2})
     return C
 end
 
-Base.:+(A::AbstractArray{Float64,2}, B::Hmat) = B+A
+Base.:+(A::Union{SparseMatrixCSC{Float64,Int64}, AbstractArray{Float64,2}}, B::Hmat) = B+A

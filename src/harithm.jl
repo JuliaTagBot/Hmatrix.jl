@@ -1,4 +1,3 @@
-using SparseArrays
 # a = a + scalar * b
 # a is a H-matrix, b is a full matrix. The operation is done in place.
 # the format of a is preserved. 

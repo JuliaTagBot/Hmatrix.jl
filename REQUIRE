@@ -13,3 +13,4 @@ CMake
 BinDeps
 FastGaussQuadrature
 LowRankApprox
+SparseArrays

@@ -7,6 +7,8 @@ module Hmatrix
     using Statistics
     using FastGaussQuadrature
     using PyCall
+    using SparseArrays
+
     @pyimport numpy as np
     @pyimport scipy.signal as ss
     @pyimport scipy.sparse.linalg as ssl

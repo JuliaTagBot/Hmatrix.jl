@@ -192,6 +192,7 @@ function inverse_permutation(P::AbstractArray{Int64})
 end
 
 function construct_cluster(X::Array{Float64}, Nleaf::Int64)
+    np.random[:seed](2333)
     if size(X,2)==1
         X = reshape(X,length(X),1)
     end

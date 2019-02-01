@@ -38,8 +38,8 @@ function full_hmat_add(A::Array{Float64}, H::Hmat)
     if H.is_rkmatrix
         return A + H.A*H.B'
     end
-    m = H.m
-    n = H.m
+    m = H.children[1,1].m
+    n = H.children[1,1].n
     return [
         full_hmat_add(A[1:m,1:n], H.children[1,1]) full_hmat_add(A[1:m, n+1:end], H.children[1,2])
         full_hmat_add(A[m+1:end,1:n], H.children[2,1]) full_hmat_add(A[m+1:end,n+1:end], H.children[2,2])

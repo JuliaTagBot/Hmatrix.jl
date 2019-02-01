@@ -3,7 +3,8 @@ export
 lu!,
 lu,
 getl,
-getu
+getu,
+aca2
 
 function aca(A::Array{Float64}, Rrank::Int64)
     U = zeros(size(A,1), Rrank+1)
@@ -55,31 +56,57 @@ function aca2(f::Function, X::Array{Float64,1}, Y::Array{Float64,1}, Rrank::Int6
     return A, B
 end
 
+# reference: https://www.theses.fr/2016GREAT120.pdf
 function aca2(f::Function, X::Array{Float64,2}, Y::Array{Float64,2}, Rrank::Int64)
+    local σr = nothing
+    local δ = nothing
+    local Mτr = nothing
+
     m, n = size(X, 1),size(Y, 1)
     τr = 1
     A = zeros(m, Rrank+1)
     B = zeros(n, Rrank+1)
-    Ib = ones(Bool, n)
+    Ia = ones(Bool, m)
+    patience = 3
     for r = 0:Rrank
-        Mτr = [f(X[τr,:], Y[i,:]) for i=1:n]
-        σr = argmax(abs.(Mτr))
-        Ib[σr] = false
-        δ = Mτr[σr] - B[σr,:]'*A[τr,:]
-        if δ == 0
-            return A[:,1:r], B[:,1:r]
-        else
-            Mσr = [f(X[i,:], Y[σr,:]) for i=1:m]
-            A[:,r+1] = (Mσr-(A[:,1:r]*B[σr,1:r])[:])/δ
-            B[:,r+1] = Mτr-(A[τr,1:r]'*B[:,1:r]')[:]
+        for i = 1:patience
+            Mτr = [f(X[τr,:], Y[i,:]) for i=1:n]
+            if r>0
+                Mτr = Mτr-B[:,1:r]*A[τr,1:r]
+            end
+            σr = argmax(abs.(Mτr))
+            
+            δ = Mτr[σr]
+            if δ==0 || i==patience
+                break
+            else
+                τr = rand(findall(Ia)) # choose a new pivot
+            end
         end
-        τr = argmax(abs.(B[Ib,r+1]))
-        τr = findall(Ib)[τr]
+
+        if δ==0
+            return A[:,1:r], B[:,1:r]
+        end
+        Ia[τr] = false
+        
+        # update A, B
+        Mσr = [f(X[i,:], Y[σr,:]) for i=1:m]
+        if r==0
+            A[:,r+1] = Mσr/δ
+        else
+            A[:,r+1] = (Mσr-(A[:,1:r]*B[σr,1:r])[:])/δ
+        end
+        B[:,r+1] = Mτr
+    
+        # generate a new τr
+        τr = argmax(abs.(A[Ia,r+1]))
+        τr = findall(Ia)[τr]
         ε = norm(A[:,r+1])*norm(B[:,r+1])/norm(A[:,1])/norm(B[:,1])
         if ε<=Hparams.εComp
             return A[:,1:r+1], B[:,1:r+1]
         end
     end
+    # @show maximum(abs.(A*B'-FullMat(f, X, Y)))
     return A, B
 end
 

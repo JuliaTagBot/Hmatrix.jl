@@ -82,3 +82,10 @@ end
     A = FullMat((x,y)->1/(1+(x-y)^2), X, X)
     maximum(abs.(A-U*V'))
 end
+
+@testset "aca2-2d" begin
+    X = [rand(100,2); rand(100,2)+ones(100,2)*6]
+    U,V = aca2((x,y)->1/(1+norm(x-y)^2), X, X, 100)
+    A = FullMat((x,y)->1/(1+norm(x-y)^2), X, X)
+    maximum(abs.(A-U*V'))
+end

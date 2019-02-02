@@ -10,11 +10,9 @@ module Hmatrix
     using SparseArrays
 
     @pyimport numpy as np
-    @pyimport scipy.signal as ss
     @pyimport scipy.sparse.linalg as ssl
-    @pyimport scipy.stats as sstats
-    @pyimport scipy.special as ssp  
     @pyimport sklearn.cluster as cluster
+    @pyimport scipy.spatial as ss
 
     @pyimport matplotlib.patches as patch
 

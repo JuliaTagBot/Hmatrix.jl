@@ -137,6 +137,7 @@ function Base.:(==)(c1::Cluster, c2::Cluster)
     return c1.s==c2.s && c1.e==c2.e
 end
 
+
 function compute_geom_info(c::Cluster)
     function helper(c)
         c.center = sum(c.X, dims=1)/size(c.X,1)

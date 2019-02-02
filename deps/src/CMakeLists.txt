@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "-O3 -g -msse2")
 # # add the eigen3 library here 
 # include_directories(. /home/kailaix/.local/include/eigen3)
 # include_directories(. /usr/local/include/eigen3/)
-
+include_directories(/usr/local/include/eigen3)
 
 # add_executable(main ACA_FullyPivoted.cpp)
 add_library(aca SHARED ACA_FullyPivoted.cpp)

@@ -31,10 +31,13 @@ end
     n::Int = 0
     children::Array{Hmat} = Array{Hmat}([])
     s::Union{Cluster,Nothing} = nothing
-    t::Union{Cluster,Nothing} = nothing # used in the construction phase and later abondoned
+    t::Union{Cluster,Nothing} = nothing 
 end
 
 function NewHmat()
+    if Hparams.MaxBlock==-1
+        Hparams.MaxBlock = div(size(Hparams.Geom,1), 4)
+    end
     c = construct_cluster(Hparams.Geom, Hparams.MinBlock)
     compute_geom_info(c)
     return c, __c1(c)
@@ -44,6 +47,7 @@ FullMat(F::Function, X::Array,Y::Array) = kernel_full(F, X, Y)
 
 
 function __c1(c)
+    # @info "__c1", Hparams.ConsMethod, Hparams.ConsMethod == "aca2"
     MaxBlock, Kernel = Hparams.MaxBlock, Hparams.Kernel
     h = Hmat()
     function helper(H::Hmat, s::Cluster, t::Cluster)
@@ -51,7 +55,8 @@ function __c1(c)
         H.n = t.N
         H.s = s
         H.t = t
-
+        
+        # @show MaxBlock
         # Matrix Size
         if (H.m <= Hparams.MinBlock || H.n <= Hparams.MinBlock) || s.isleaf || t.isleaf
             H.is_fullmatrix = true
@@ -67,7 +72,7 @@ function __c1(c)
             else
                 if Hparams.ConsMethod == "bbfmm"
                     # dicide if the block is admissible
-                    if (s.diam+t.diam)*0.55<=norm(s.center-t.center)
+                    if (s.diam+t.diam)*Hparams.η<=norm(s.center-t.center)
                         H.is_rkmatrix = true
                         U, V = bbfmm(Kernel, s.X, t.X, Hparams.MaxRank)
                     else
@@ -75,17 +80,18 @@ function __c1(c)
                     end
                 elseif Hparams.ConsMethod == "separate"
                     # @show (s.diam+t.diam)/2, norm(s.center-t.center)
-                    if (s.diam+t.diam)*0.55<=norm(s.center-t.center)
+                    if (s.diam+t.diam)*Hparams.η<=norm(s.center-t.center)
                         H.is_rkmatrix = true
                         U, V = _rk_matrix(Hparams.α, Hparams.β, s.X, t.X)
                     else
                         H.is_hmat = true
                     end
                 elseif Hparams.ConsMethod == "aca2"
-                    if (s.diam+t.diam)*0.55<=norm(s.center-t.center)
+                    if (s.diam+t.diam)*Hparams.η<=norm(s.center-t.center)
                         H.is_rkmatrix = true
-                        U, V = aca2(Hparams.Kernel, s.X, t.X, Hparams.MaxRank)
-                        if size(U,2)>Hparams.MaxRank
+                        U, V = aca2(Hparams.Kernel, s.X, t.X, Hparams.MaxRank-1)
+                        # @show "low rank $(size(U,2))"
+                        if Hparams.aca_force && size(U,2)>Hparams.MaxRank
                             H.is_hmat = true
                         end
                     else

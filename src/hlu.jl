@@ -379,9 +379,10 @@ function hmat_trisolve!(a::Hmat, b::Hmat, islower::Bool, unitdiag::Bool)
                 @warn "b is an empty matrix"
                 return
             end
-            b.B = b.B'
+            # @error "Never used"
+            # b.B = b.B'
             LAPACK.trtrs!('U', 'T', cc, a.C, b.B)
-            b.B = b.B'
+            # b.B = b.B'
         elseif a.is_hmat && b.is_fullmatrix
             # println("HF")
             # p =b.C/ getu(to_fmat(a), unitdiag)

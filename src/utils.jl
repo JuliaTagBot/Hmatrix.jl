@@ -1,7 +1,8 @@
 export
 Hparams,
 matshow,
-plot
+plot,
+coarsening
 
 @with_kw mutable struct Params
     Geom::Union{Nothing, Array} = nothing
@@ -16,10 +17,44 @@ plot
     ConsMethod::String = "bbfmm"
     εTrunc::Float64 = 1e-10
     verbose::Bool = false
-    adm::Union{String,Nothing} = "strong"
+    η::Float64 = 0.55 # admissible parameter
+    aca_force::Bool = false # if true, aca will not check validity
 end
 
 Hparams = Params()
+
+
+function coarsening(H::Hmat)
+    G = copy(H)
+    function helper(H::Hmat)
+        if (H.s!=H.t) && H.is_fullmatrix==true
+            C = H.C
+            if size(C,1)==size(C,2)
+                U,S,V = psvd(C)    # fast svd is availabel
+            else
+                U,S,V = svd(C)
+            end
+            k = findlast(S/S[1] .> Hparams.εTrunc)
+            # @show k, Hparams.MaxRank
+            if k<=Hparams.MaxRank
+                H.A = U[:,1:k]
+                H.B = Array((diagm(0=>S[1:k])*V'[1:k,:])')
+                # @show H.m, H.n, size(H.A), size(H.B)
+                H.C = zeros(0,0)
+                H.is_rkmatrix = true
+                H.is_fullmatrix = false
+            end
+        elseif H.is_hmat
+            for i = 1:2
+                for j = 1:2
+                    helper(H.children[i,j])
+                end
+            end
+        end
+    end
+    helper(G)
+    G
+end
 
 function require_args(args...)
     for i = 1:length(args)

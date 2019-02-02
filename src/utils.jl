@@ -1,3 +1,4 @@
+using SparseArrays
 export
 Hparams,
 matshow,
@@ -6,6 +7,8 @@ coarsening
 
 @with_kw mutable struct Params
     Geom::Union{Nothing, Array} = nothing
+    Adj::Union{Nothing, SparseMatrixCSC} = nothing
+    Neighbors::Union{Nothing, SparseMatrixCSC} = nothing
     εComp::Float64 = 1e-10
     MaxRank::Int64 = 16
     MaxBlock::Int64 = -1
@@ -17,7 +20,6 @@ coarsening
     ConsMethod::String = "bbfmm"
     εTrunc::Float64 = 1e-10
     verbose::Bool = false
-    η::Float64 = 0.55 # admissible parameter
     aca_force::Bool = false # if true, aca will not check validity
 end
 

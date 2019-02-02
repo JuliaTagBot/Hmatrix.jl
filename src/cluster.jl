@@ -15,8 +15,7 @@ FullMat
     isleaf::Bool = false                        # if it is leaf
     s::Int64 = 0                                # start index after permutation
     e::Int64 = 0                                # end index after permutation
-    center::Array{Float64} = Array{Float64}([])
-    diam::Union{Nothing,Float64} = nothing
+    id::Int64 = 0
 end
 
 @with_kw mutable struct Hmat
@@ -38,8 +37,8 @@ function NewHmat()
     if Hparams.MaxBlock==-1
         Hparams.MaxBlock = div(size(Hparams.Geom,1), 4)
     end
-    c = construct_cluster(Hparams.Geom, Hparams.MinBlock)
-    compute_geom_info(c)
+    ncluster, c = construct_cluster(Hparams.Geom, Hparams.MinBlock)
+    compute_geom_info(ncluster, c)
     return c, __c1(c)
 end
 
@@ -72,22 +71,21 @@ function __c1(c)
             else
                 if Hparams.ConsMethod == "bbfmm"
                     # dicide if the block is admissible
-                    if (s.diam+t.diam)*Hparams.η<=norm(s.center-t.center)
+                    if Hparams.Neighbors[s.id, t.id] == 0
                         H.is_rkmatrix = true
                         U, V = bbfmm(Kernel, s.X, t.X, Hparams.MaxRank)
                     else
                         H.is_hmat = true
                     end
                 elseif Hparams.ConsMethod == "separate"
-                    # @show (s.diam+t.diam)/2, norm(s.center-t.center)
-                    if (s.diam+t.diam)*Hparams.η<=norm(s.center-t.center)
+                    if Hparams.Neighbors[s.id, t.id] == 0
                         H.is_rkmatrix = true
                         U, V = _rk_matrix(Hparams.α, Hparams.β, s.X, t.X)
                     else
                         H.is_hmat = true
                     end
                 elseif Hparams.ConsMethod == "aca2"
-                    if (s.diam+t.diam)*Hparams.η<=norm(s.center-t.center)
+                    if Hparams.Neighbors[s.id, t.id] == 0
                         H.is_rkmatrix = true
                         U, V = aca2(Hparams.Kernel, s.X, t.X, Hparams.MaxRank-1)
                         # @show "low rank $(size(U,2))"
@@ -138,19 +136,36 @@ function Base.:(==)(c1::Cluster, c2::Cluster)
 end
 
 
-function compute_geom_info(c::Cluster)
-    function helper(c)
-        c.center = sum(c.X, dims=1)/size(c.X,1)
-        diam = c.X - repeat(reshape(c.center, 1, size(c.X,2)),size(c.X,1),1)
-        c.diam = 2sqrt(maximum(sum(diam.^2, dims=2)))
+function compute_geom_info(ncluster::Int64, c::Cluster)
+    Hparams.Adj = Hparams.Adj[c.P, c.P]
+    p2c = Dict{Int64, Set{Int64}}([i=>Set{Int64}([]) for i=1:size(c.X,1)])
+    function helper(c::Cluster)
+        for i = c.s:c.e
+            push!(p2c[i], c.id)
+        end
         if c.left!=nothing
             helper(c.left)
-        end
-        if c.right!=nothing
             helper(c.right)
         end
     end
     helper(c)
+
+    ii = Int64[]
+    jj = Int64[]
+    vv = Int64[]
+    i_,j_,_ = findnz(Hparams.Adj)
+    for i=1:length(i_)
+        for j=1:length(j_)
+            for k1 in p2c[i_[i]]
+                for k2 in p2c[j_[j]]
+                    push!(ii, k1)
+                    push!(jj, k2)
+                    push!(vv, 1)
+                end
+            end
+        end
+    end
+    Hparams.Neighbors = sparse(ii, jj, vv, ncluster, ncluster)
 end
 
 function _rk_matrix(alpha, beta, x, y)
@@ -199,12 +214,16 @@ function inverse_permutation(P::AbstractArray{Int64})
 end
 
 function construct_cluster(X::Array{Float64}, Nleaf::Int64)
+    local __id = 0
     np.random[:seed](2333)
     if size(X,2)==1
         X = reshape(X,length(X),1)
     end
 
     function downward(c::Cluster)
+        __id += 1
+        c.id = __id
+
         if c.N<=Nleaf
             c.isleaf = true
             return
@@ -233,7 +252,7 @@ function construct_cluster(X::Array{Float64}, Nleaf::Int64)
     c = Cluster(X = X, P = collect(1:size(X,1)), N = size(X,1), s = 1, e = size(X,1))
     downward(c)
     upward(c)
-    return c
+    return __id, c
 end
 
 function kernel_full(f::Function, X::Array{Float64}, Y::Array{Float64})

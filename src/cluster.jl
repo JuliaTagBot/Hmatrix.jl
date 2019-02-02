@@ -93,6 +93,7 @@ function __c1(c)
                             H.is_hmat = true
                         end
                     else
+                        # @show "Connected"
                         H.is_hmat = true
                     end
                 else
@@ -149,19 +150,18 @@ function compute_geom_info(ncluster::Int64, c::Cluster)
         end
     end
     helper(c)
+    # @show p2c
 
     ii = Int64[]
     jj = Int64[]
     vv = Int64[]
     i_,j_,_ = findnz(Hparams.Adj)
     for i=1:length(i_)
-        for j=1:length(j_)
-            for k1 in p2c[i_[i]]
-                for k2 in p2c[j_[j]]
-                    push!(ii, k1)
-                    push!(jj, k2)
-                    push!(vv, 1)
-                end
+        for k1 in p2c[i_[i]]
+            for k2 in p2c[j_[i]]
+                push!(ii, k1)
+                push!(jj, k2)
+                push!(vv, 1)
             end
         end
     end

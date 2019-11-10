@@ -46,6 +46,13 @@ lu(H)
 
 * **Kailai Xu** - [Kailai Xu](http://stanford.edu/~kailaix/)
 
+
+## Research Work
+
+```
+Xu, Kailai, and Eric Darve. "Efficient Numerical Method for Models Driven by L\'evy Process via Hierarchical Matrices." arXiv preprint arXiv:1812.08324 (2018).
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details

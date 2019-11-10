@@ -5,3 +5,4 @@ flap/*
 build.log
 build/
 .DS_Store
+!docs/src/assets/hmatrix.png
